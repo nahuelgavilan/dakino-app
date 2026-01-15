@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Modal } from '@/components/common/Modal';
+import { ImageUpload } from '@/components/common/ImageUpload';
 import { productService } from '@/services/product.service';
 import { categoryService } from '@/services/category.service';
 import { useAuthStore } from '@/store/authStore';
@@ -17,6 +18,7 @@ export const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: Produc
   const { user } = useAuthStore();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     category_id: '',
@@ -36,6 +38,7 @@ export const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: Produc
           default_price: product.default_price?.toString() || '',
           default_unit: product.default_unit || '',
         });
+        setImageUrl(product.image_url || null);
       } else {
         setFormData({
           name: '',
@@ -44,6 +47,7 @@ export const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: Produc
           default_price: '',
           default_unit: '',
         });
+        setImageUrl(null);
       }
     }
   }, [isOpen, product]);
@@ -71,7 +75,7 @@ export const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: Produc
         unit_type: formData.unit_type,
         default_price: formData.default_price ? parseFloat(formData.default_price) : null,
         default_unit: formData.default_unit || null,
-        image_url: null,
+        image_url: imageUrl,
       };
 
       if (product) {
@@ -201,6 +205,18 @@ export const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: Produc
             />
           </div>
         )}
+
+        {/* Image Upload */}
+        <div>
+          <label className="block text-sm font-bold text-neutral-700 mb-2">
+            Foto del producto (opcional)
+          </label>
+          <ImageUpload
+            currentImage={imageUrl}
+            onImageUploaded={(url) => setImageUrl(url)}
+            onImageRemoved={() => setImageUrl(null)}
+          />
+        </div>
 
         {/* Actions */}
         <div className="flex gap-3 pt-4">
