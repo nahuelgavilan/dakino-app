@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { purchaseService } from '@/services/purchase.service';
 import { categoryService } from '@/services/category.service';
-import { Purchase, Category } from '@/types/models';
+import { useAuthStore } from '@/store/authStore';
+import type { Purchase, Category } from '@/types/models';
 import { Spinner } from '@/components/common/Spinner';
 import { Plus, Search, Filter, Calendar, DollarSign } from 'lucide-react';
 import { formatDistance } from 'date-fns';
@@ -10,6 +11,7 @@ import { es } from 'date-fns/locale';
 
 export const PurchasesPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -22,10 +24,12 @@ export const PurchasesPage = () => {
   }, []);
 
   const loadData = async () => {
+    if (!user) return;
+
     try {
       setLoading(true);
       const [purchasesData, categoriesData] = await Promise.all([
-        purchaseService.getAllPurchases(),
+        purchaseService.getAllPurchases(user.id),
         categoryService.getCategories(),
       ]);
       setPurchases(purchasesData);

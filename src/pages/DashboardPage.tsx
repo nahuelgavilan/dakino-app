@@ -4,7 +4,7 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { RecentPurchases } from '@/components/dashboard/RecentPurchases';
 import { statisticsService } from '@/services/statistics.service';
 import { purchaseService } from '@/services/purchase.service';
-import { Purchase } from '@/types/models';
+import type { Purchase } from '@/types/models';
 import { Spinner } from '@/components/common/Spinner';
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';

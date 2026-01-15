@@ -1,5 +1,5 @@
 import { ShoppingBag } from 'lucide-react';
-import { Purchase } from '@/types/models';
+import type { Purchase } from '@/types/models';
 import { formatDistance } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -32,7 +32,7 @@ export const RecentPurchases = ({ purchases }: RecentPurchasesProps) => {
   return (
     <div className="space-y-3">
       {purchases.map((purchase, index) => {
-        const gradient = categoryColors[purchase.category_name || ''] || 'from-gray-400 to-gray-500';
+        const gradient = categoryColors[purchase.category?.name || ''] || 'from-gray-400 to-gray-500';
 
         return (
           <div
@@ -51,10 +51,14 @@ export const RecentPurchases = ({ purchases }: RecentPurchasesProps) => {
                   {purchase.product_name}
                 </h4>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-sm text-neutral-500">
-                    {purchase.category_name}
-                  </span>
-                  <span className="text-neutral-300">•</span>
+                  {purchase.category && (
+                    <>
+                      <span className="text-sm text-neutral-500">
+                        {purchase.category.name}
+                      </span>
+                      <span className="text-neutral-300">•</span>
+                    </>
+                  )}
                   <span className="text-sm text-neutral-400">
                     {formatDistance(new Date(purchase.purchase_date), new Date(), {
                       addSuffix: true,

@@ -3,7 +3,7 @@ import { Modal } from '@/components/common/Modal';
 import { productService } from '@/services/product.service';
 import { categoryService } from '@/services/category.service';
 import { useAuthStore } from '@/store/authStore';
-import { Product, Category, ProductInsert } from '@/types/models';
+import type { Product, Category, ProductInsert } from '@/types/models';
 import { Package, DollarSign } from 'lucide-react';
 
 interface ProductFormModalProps {

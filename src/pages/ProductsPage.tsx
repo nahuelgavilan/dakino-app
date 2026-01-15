@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { productService } from '@/services/product.service';
 import { useAuthStore } from '@/store/authStore';
-import { Product } from '@/types/models';
+import type { Product } from '@/types/models';
 import { ProductFormModal } from '@/components/products/ProductFormModal';
 import { Spinner } from '@/components/common/Spinner';
 import { Plus, Search, Package, Star, TrendingUp, Edit2, Trash2 } from 'lucide-react';

@@ -1,17 +1,18 @@
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/common/Input';
 import { Button } from '@/components/common/Button';
 import { purchaseService } from '@/services/purchase.service';
 import { productService } from '@/services/product.service';
 import { categoryService } from '@/services/category.service';
-import { useToast } from '@/hooks/useToast';
-import { Product, Category } from '@/types/models';
+import { useAuthStore } from '@/store/authStore';
+import type { Product, Category } from '@/types/models';
 import { Package, Scale, Calendar, DollarSign, X, Search } from 'lucide-react';
 
 export const PurchaseForm = () => {
   const navigate = useNavigate();
-  const { success, error } = useToast();
+  const { user } = useAuthStore();
 
   const [unitType, setUnitType] = useState<'unit' | 'weight'>('unit');
   const [productSearch, setProductSearch] = useState('');
@@ -54,8 +55,10 @@ export const PurchaseForm = () => {
   };
 
   const searchProducts = async (query: string) => {
+    if (!user) return;
+
     try {
-      const results = await productService.searchProducts(query);
+      const results = await productService.searchProducts(user.id, query);
       setProducts(results);
       setShowProductSuggestions(results.length > 0);
     } catch (err) {
@@ -85,8 +88,13 @@ export const PurchaseForm = () => {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
+    if (!user) {
+      alert('Debes iniciar sesión');
+      return;
+    }
+
     if (!formData.productName || !formData.categoryId || !formData.quantity || !formData.unitPrice) {
-      error('Por favor completa todos los campos requeridos');
+      alert('Por favor completa todos los campos requeridos');
       return;
     }
 
@@ -94,20 +102,26 @@ export const PurchaseForm = () => {
 
     try {
       await purchaseService.createPurchase({
+        user_id: user.id,
+        product_id: selectedProduct?.id || null,
         product_name: formData.productName,
         category_id: formData.categoryId,
         unit_type: unitType,
-        quantity: parseFloat(formData.quantity),
-        unit_price: parseFloat(formData.unitPrice),
+        quantity: unitType === 'unit' ? parseInt(formData.quantity) : null,
+        weight: unitType === 'weight' ? parseFloat(formData.quantity) : null,
+        unit_price: unitType === 'unit' ? parseFloat(formData.unitPrice) : null,
+        price_per_unit: unitType === 'weight' ? parseFloat(formData.unitPrice) : null,
         total_price: calculateTotal(),
         purchase_date: formData.purchaseDate,
-        notes: formData.notes || undefined,
+        notes: formData.notes || null,
+        image_url: null,
       });
 
-      success('✨ Compra registrada correctamente');
+      alert('✨ Compra registrada correctamente');
       navigate('/');
     } catch (err: any) {
-      error(err.message || 'Error al registrar la compra');
+      console.error('Error creating purchase:', err);
+      alert(err.message || 'Error al registrar la compra');
     } finally {
       setLoading(false);
     }
