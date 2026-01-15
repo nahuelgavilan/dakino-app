@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/store/authStore';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { RecentPurchases } from '@/components/dashboard/RecentPurchases';
 import { statisticsService } from '@/services/statistics.service';
@@ -10,7 +10,7 @@ import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const DashboardPage = () => {
-  const { profile } = useAuth();
+  const { user, profile } = useAuthStore();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -22,19 +22,23 @@ export const DashboardPage = () => {
   const [recentPurchases, setRecentPurchases] = useState<Purchase[]>([]);
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    if (user) {
+      loadDashboardData();
+    }
+  }, [user]);
 
   const loadDashboardData = async () => {
+    if (!user) return;
+
     try {
       setLoading(true);
 
       // Load stats in parallel
       const [todayStats, weekStats, monthStats, purchases] = await Promise.all([
-        statisticsService.getPeriodStats('day'),
-        statisticsService.getPeriodStats('week'),
-        statisticsService.getPeriodStats('month'),
-        purchaseService.getRecentPurchases(5),
+        statisticsService.getDayStats(user.id),
+        statisticsService.getWeekStats(user.id),
+        statisticsService.getMonthStats(user.id),
+        purchaseService.getRecentPurchases(user.id, 5),
       ]);
 
       setStats({

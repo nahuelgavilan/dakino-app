@@ -2,6 +2,39 @@ import { supabase } from './supabase';
 import type { Purchase, PurchaseInsert, PurchaseUpdate } from '@/types/models';
 
 export class PurchaseService {
+  async getAllPurchases(userId: string): Promise<Purchase[]> {
+    const { data, error } = await supabase
+      .from('purchases')
+      .select(
+        `
+        *,
+        category:categories(*)
+      `
+      )
+      .eq('user_id', userId)
+      .order('purchase_date', { ascending: false });
+
+    if (error) throw error;
+    return data as Purchase[];
+  }
+
+  async getRecentPurchases(userId: string, limit = 5): Promise<Purchase[]> {
+    const { data, error } = await supabase
+      .from('purchases')
+      .select(
+        `
+        *,
+        category:categories(*)
+      `
+      )
+      .eq('user_id', userId)
+      .order('purchase_date', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data as Purchase[];
+  }
+
   async getPurchases(
     userId: string,
     filters?: {

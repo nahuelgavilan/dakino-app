@@ -174,7 +174,7 @@ export const PurchasesPage = () => {
             </div>
           ) : (
             filteredPurchases.map((purchase, index) => {
-              const gradient = categoryColors[purchase.category_name || ''] || 'from-gray-400 to-gray-500';
+              const gradient = categoryColors[purchase.category?.name || ''] || 'from-gray-400 to-gray-500';
 
               return (
                 <div
@@ -197,8 +197,12 @@ export const PurchasesPage = () => {
                         </h3>
 
                         <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-500 mb-3">
-                          <span className="font-semibold">{purchase.category_name}</span>
-                          <span>•</span>
+                          {purchase.category && (
+                            <>
+                              <span className="font-semibold">{purchase.category.name}</span>
+                              <span>•</span>
+                            </>
+                          )}
                           <span className="flex items-center gap-1">
                             <Calendar size={14} />
                             {formatDistance(
