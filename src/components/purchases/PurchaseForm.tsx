@@ -7,12 +7,14 @@ import { purchaseService } from '@/services/purchase.service';
 import { productService } from '@/services/product.service';
 import { categoryService } from '@/services/category.service';
 import { useAuthStore } from '@/store/authStore';
+import { useToast } from '@/hooks/useToast';
 import type { Product, Category } from '@/types/models';
 import { Package, Scale, Calendar, DollarSign, X, Search } from 'lucide-react';
 
 export const PurchaseForm = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const { success, error: showError } = useToast();
 
   const [unitType, setUnitType] = useState<'unit' | 'weight'>('unit');
   const [productSearch, setProductSearch] = useState('');
@@ -89,12 +91,12 @@ export const PurchaseForm = () => {
     e.preventDefault();
 
     if (!user) {
-      alert('Debes iniciar sesión');
+      showError('Debes iniciar sesión');
       return;
     }
 
     if (!formData.productName || !formData.categoryId || !formData.quantity || !formData.unitPrice) {
-      alert('Por favor completa todos los campos requeridos');
+      showError('Por favor completa todos los campos requeridos');
       return;
     }
 
@@ -117,11 +119,11 @@ export const PurchaseForm = () => {
         image_url: null,
       });
 
-      alert('✨ Compra registrada correctamente');
+      success('✨ Compra registrada correctamente');
       navigate('/');
     } catch (err: any) {
       console.error('Error creating purchase:', err);
-      alert(err.message || 'Error al registrar la compra');
+      showError(err.message || 'Error al registrar la compra');
     } finally {
       setLoading(false);
     }
