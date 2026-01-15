@@ -128,6 +128,18 @@ export const DashboardPage = () => {
           </div>
         )}
 
+        {/* Analytics CTA */}
+        <button
+          onClick={() => navigate('/analytics')}
+          className="w-full bg-gradient-to-r from-purple-500 to-violet-600 text-white rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all active:scale-[0.98] flex items-center justify-between"
+        >
+          <div className="text-left">
+            <p className="text-sm font-medium opacity-90 mb-1">Ver análisis completo</p>
+            <p className="text-xl font-black">Estadísticas y Gráficos 📊</p>
+          </div>
+          <div className="text-3xl">→</div>
+        </button>
+
         {/* Recent Purchases */}
         <div>
           <div className="flex items-center justify-between mb-6">
