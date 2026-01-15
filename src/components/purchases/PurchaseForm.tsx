@@ -1,0 +1,298 @@
+import { useState, FormEvent, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Input } from '@/components/common/Input';
+import { Button } from '@/components/common/Button';
+import { purchaseService } from '@/services/purchase.service';
+import { productService } from '@/services/product.service';
+import { categoryService } from '@/services/category.service';
+import { useToast } from '@/hooks/useToast';
+import { Product, Category } from '@/types/models';
+import { Package, Scale, Calendar, DollarSign, X, Search } from 'lucide-react';
+
+export const PurchaseForm = () => {
+  const navigate = useNavigate();
+  const { success, error } = useToast();
+
+  const [unitType, setUnitType] = useState<'unit' | 'weight'>('unit');
+  const [productSearch, setProductSearch] = useState('');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [showProductSuggestions, setShowProductSuggestions] = useState(false);
+
+  const [formData, setFormData] = useState({
+    productName: '',
+    categoryId: '',
+    quantity: '',
+    unitPrice: '',
+    purchaseDate: new Date().toISOString().split('T')[0],
+    notes: '',
+  });
+
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  useEffect(() => {
+    if (productSearch.length >= 2) {
+      searchProducts(productSearch);
+    } else {
+      setProducts([]);
+      setShowProductSuggestions(false);
+    }
+  }, [productSearch]);
+
+  const loadCategories = async () => {
+    try {
+      const data = await categoryService.getCategories();
+      setCategories(data);
+    } catch (err) {
+      console.error('Error loading categories:', err);
+    }
+  };
+
+  const searchProducts = async (query: string) => {
+    try {
+      const results = await productService.searchProducts(query);
+      setProducts(results);
+      setShowProductSuggestions(results.length > 0);
+    } catch (err) {
+      console.error('Error searching products:', err);
+    }
+  };
+
+  const selectProduct = (product: Product) => {
+    setSelectedProduct(product);
+    setProductSearch(product.name);
+    setFormData(prev => ({
+      ...prev,
+      productName: product.name,
+      categoryId: product.category_id || '',
+      unitPrice: product.default_price?.toString() || '',
+    }));
+    setUnitType(product.unit_type);
+    setShowProductSuggestions(false);
+  };
+
+  const calculateTotal = (): number => {
+    const quantity = parseFloat(formData.quantity) || 0;
+    const price = parseFloat(formData.unitPrice) || 0;
+    return quantity * price;
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.productName || !formData.categoryId || !formData.quantity || !formData.unitPrice) {
+      error('Por favor completa todos los campos requeridos');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await purchaseService.createPurchase({
+        product_name: formData.productName,
+        category_id: formData.categoryId,
+        unit_type: unitType,
+        quantity: parseFloat(formData.quantity),
+        unit_price: parseFloat(formData.unitPrice),
+        total_price: calculateTotal(),
+        purchase_date: formData.purchaseDate,
+        notes: formData.notes || undefined,
+      });
+
+      success('✨ Compra registrada correctamente');
+      navigate('/');
+    } catch (err: any) {
+      error(err.message || 'Error al registrar la compra');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const total = calculateTotal();
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-primary-50/20 to-secondary-50/20">
+      {/* Header */}
+      <div className="bg-white/80 backdrop-blur-lg border-b border-neutral-200/50 sticky top-0 z-20">
+        <div className="max-w-3xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-black text-neutral-900">
+              Nueva Compra
+            </h1>
+            <button
+              onClick={() => navigate('/')}
+              className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
+            >
+              <X size={24} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="max-w-3xl mx-auto px-4 py-8">
+        {/* Unit Type Toggle */}
+        <div className="bg-white rounded-3xl p-2 shadow-lg mb-6 flex gap-2">
+          <button
+            type="button"
+            onClick={() => setUnitType('unit')}
+            className={`flex-1 py-4 rounded-2xl font-bold transition-all duration-200 ${
+              unitType === 'unit'
+                ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg'
+                : 'text-neutral-600 hover:bg-neutral-50'
+            }`}
+          >
+            <Package className="inline mr-2" size={20} />
+            Por Unidad
+          </button>
+          <button
+            type="button"
+            onClick={() => setUnitType('weight')}
+            className={`flex-1 py-4 rounded-2xl font-bold transition-all duration-200 ${
+              unitType === 'weight'
+                ? 'bg-gradient-to-r from-secondary-500 to-secondary-600 text-white shadow-lg'
+                : 'text-neutral-600 hover:bg-neutral-50'
+            }`}
+          >
+            <Scale className="inline mr-2" size={20} />
+            Por Peso
+          </button>
+        </div>
+
+        <div className="bg-white rounded-3xl p-6 shadow-xl space-y-6">
+          {/* Product Search with Autocomplete */}
+          <div className="relative">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" size={20} />
+              <input
+                type="text"
+                value={productSearch}
+                onChange={(e) => {
+                  setProductSearch(e.target.value);
+                  setFormData(prev => ({ ...prev, productName: e.target.value }));
+                }}
+                onFocus={() => products.length > 0 && setShowProductSuggestions(true)}
+                placeholder="Buscar producto..."
+                className="w-full pl-12 pr-4 py-4 border-2 border-neutral-200 rounded-2xl focus:border-primary-500 focus:outline-none text-lg font-medium transition-colors"
+                required
+              />
+            </div>
+
+            {/* Suggestions Dropdown */}
+            {showProductSuggestions && (
+              <div className="absolute z-10 w-full mt-2 bg-white rounded-2xl shadow-2xl border-2 border-neutral-100 max-h-64 overflow-y-auto">
+                {products.map((product) => (
+                  <button
+                    key={product.id}
+                    type="button"
+                    onClick={() => selectProduct(product)}
+                    className="w-full px-4 py-3 text-left hover:bg-primary-50 transition-colors border-b border-neutral-100 last:border-0"
+                  >
+                    <div className="font-semibold text-neutral-900">{product.name}</div>
+                    <div className="text-sm text-neutral-500 mt-1">
+                      ${product.default_price?.toFixed(2)} • Usado {product.usage_count} veces
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Category */}
+          <div>
+            <label className="block text-sm font-bold text-neutral-700 mb-2">
+              Categoría
+            </label>
+            <select
+              value={formData.categoryId}
+              onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
+              className="w-full px-4 py-4 border-2 border-neutral-200 rounded-2xl focus:border-primary-500 focus:outline-none text-lg font-medium transition-colors"
+              required
+            >
+              <option value="">Selecciona una categoría</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.icon} {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Quantity and Price */}
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              type="number"
+              step="0.01"
+              label={unitType === 'unit' ? 'Cantidad' : 'Peso (kg)'}
+              value={formData.quantity}
+              onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
+              placeholder={unitType === 'unit' ? '1' : '0.5'}
+              icon={unitType === 'unit' ? <Package size={20} /> : <Scale size={20} />}
+              required
+            />
+
+            <Input
+              type="number"
+              step="0.01"
+              label={unitType === 'unit' ? 'Precio unitario' : 'Precio por kg'}
+              value={formData.unitPrice}
+              onChange={(e) => setFormData(prev => ({ ...prev, unitPrice: e.target.value }))}
+              placeholder="0.00"
+              icon={<DollarSign size={20} />}
+              required
+            />
+          </div>
+
+          {/* Total Display */}
+          {formData.quantity && formData.unitPrice && (
+            <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl p-6 text-white">
+              <p className="text-sm font-medium opacity-90 mb-1">Total</p>
+              <p className="text-5xl font-black">${total.toFixed(2)}</p>
+            </div>
+          )}
+
+          {/* Date */}
+          <Input
+            type="date"
+            label="Fecha"
+            value={formData.purchaseDate}
+            onChange={(e) => setFormData(prev => ({ ...prev, purchaseDate: e.target.value }))}
+            icon={<Calendar size={20} />}
+            required
+          />
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-bold text-neutral-700 mb-2">
+              Notas (opcional)
+            </label>
+            <textarea
+              value={formData.notes}
+              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+              placeholder="Añade comentarios sobre esta compra..."
+              rows={3}
+              className="w-full px-4 py-3 border-2 border-neutral-200 rounded-2xl focus:border-primary-500 focus:outline-none resize-none transition-colors"
+            />
+          </div>
+        </div>
+
+        {/* Submit Button */}
+        <div className="mt-8 sticky bottom-0 pb-6">
+          <Button
+            type="submit"
+            fullWidth
+            size="lg"
+            loading={loading}
+            className="shadow-2xl"
+          >
+            Guardar Compra
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+};
