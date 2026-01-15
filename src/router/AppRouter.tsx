@@ -6,11 +6,11 @@ import { SignupPage } from '@/pages/auth/SignupPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { PurchasesPage } from '@/pages/purchases/PurchasesPage';
 import { PurchaseFormPage } from '@/pages/purchases/PurchaseFormPage';
+import { ProductsPage } from '@/pages/ProductsPage';
+import { ProfilePage } from '@/pages/ProfilePage';
 import { ROUTES } from './routes';
 
-// Páginas temporales (serán implementadas después)
-const ProductsPage = () => <div className="p-6"><h1 className="text-3xl font-display font-bold">Productos</h1><p className="text-neutral-600 mt-2">Página en construcción</p></div>;
-const ProfilePage = () => <div className="p-6"><h1 className="text-3xl font-display font-bold">Perfil</h1><p className="text-neutral-600 mt-2">Página en construcción</p></div>;
+// Páginas temporales
 const NotFoundPage = () => <div className="p-6 text-center"><h1 className="text-3xl font-display font-bold">404 - Página no encontrada</h1></div>;
 
 export const AppRouter = () => {
