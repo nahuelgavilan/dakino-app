@@ -1,0 +1,26 @@
+# docker-compose.override.yml (EXAMPLE)
+# Copia este archivo a docker-compose.override.yml para personalizar tu configuración
+# Este archivo NO se commitea a git (está en .gitignore)
+
+version: '3.8'
+
+services:
+  # Ejemplo: Cambiar puerto del frontend
+  # frontend:
+  #   ports:
+  #     - "3001:3000"  # Usar puerto 3001 en lugar de 3000
+
+  # Ejemplo: Agregar variables de entorno adicionales
+  # frontend:
+  #   environment:
+  #     - VITE_CUSTOM_VAR=value
+
+  # Ejemplo: Montar volúmenes adicionales
+  # frontend:
+  #   volumes:
+  #     - ./custom-config:/app/config
+
+  # Ejemplo: Cambiar configuración de PostgreSQL
+  # db:
+  #   environment:
+  #     - POSTGRES_PASSWORD=mi-password-custom
