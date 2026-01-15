@@ -3,21 +3,25 @@ import { useNavigate } from 'react-router-dom';
 import { purchaseService } from '@/services/purchase.service';
 import { categoryService } from '@/services/category.service';
 import { useAuthStore } from '@/store/authStore';
+import { useToast } from '@/hooks/useToast';
 import type { Purchase, Category } from '@/types/models';
 import { Spinner } from '@/components/common/Spinner';
-import { Plus, Search, Filter, Calendar, DollarSign } from 'lucide-react';
+import { Plus, Search, Filter, Calendar, DollarSign, Download } from 'lucide-react';
 import { formatDistance } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { exportToCSV, exportToJSON } from '@/utils/export';
 
 export const PurchasesPage = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const { success } = useToast();
   const [loading, setLoading] = useState(true);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -55,6 +59,25 @@ export const PurchasesPage = () => {
     0
   );
 
+  const handleExport = (format: 'csv' | 'json') => {
+    if (filteredPurchases.length === 0) {
+      return;
+    }
+
+    const filename = selectedCategory
+      ? `dakino-compras-${categories.find((c) => c.id === selectedCategory)?.name}`
+      : 'dakino-compras';
+
+    if (format === 'csv') {
+      exportToCSV(filteredPurchases, filename);
+    } else {
+      exportToJSON(filteredPurchases, filename);
+    }
+
+    success(`Datos exportados en formato ${format.toUpperCase()}`);
+    setShowExportMenu(false);
+  };
+
   const categoryColors: Record<string, string> = {
     'Alimentos': 'from-green-400 to-emerald-500',
     'Limpieza': 'from-blue-400 to-cyan-500',
@@ -84,12 +107,44 @@ export const PurchasesPage = () => {
               Mis Compras
             </h1>
 
-            <button
-              onClick={() => navigate('/purchases/new')}
-              className="bg-gradient-to-r from-primary-500 to-primary-600 text-white p-3 rounded-2xl shadow-lg hover:shadow-xl active:scale-95 transition-all duration-200"
-            >
-              <Plus size={20} />
-            </button>
+            <div className="flex gap-2">
+              {/* Export Button */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  disabled={filteredPurchases.length === 0}
+                  className="bg-white border-2 border-primary-500 text-primary-500 p-3 rounded-2xl shadow-md hover:shadow-lg active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Download size={20} />
+                </button>
+
+                {/* Export Menu */}
+                {showExportMenu && (
+                  <div className="absolute right-0 mt-2 bg-white rounded-2xl shadow-xl border-2 border-neutral-100 overflow-hidden z-20 min-w-[160px]">
+                    <button
+                      onClick={() => handleExport('csv')}
+                      className="w-full px-4 py-3 text-left hover:bg-neutral-50 transition-colors font-semibold text-neutral-700"
+                    >
+                      📊 Exportar CSV
+                    </button>
+                    <button
+                      onClick={() => handleExport('json')}
+                      className="w-full px-4 py-3 text-left hover:bg-neutral-50 transition-colors font-semibold text-neutral-700 border-t border-neutral-100"
+                    >
+                      📄 Exportar JSON
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Add Button */}
+              <button
+                onClick={() => navigate('/purchases/new')}
+                className="bg-gradient-to-r from-primary-500 to-primary-600 text-white p-3 rounded-2xl shadow-lg hover:shadow-xl active:scale-95 transition-all duration-200"
+              >
+                <Plus size={20} />
+              </button>
+            </div>
           </div>
 
           {/* Search Bar */}
