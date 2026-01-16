@@ -90,6 +90,20 @@ export default {
         'colored-secondary': '0 10px 25px -5px rgba(14, 165, 233, 0.4)',
         'colored-success': '0 10px 25px -5px rgba(16, 185, 129, 0.4)',
       },
+      keyframes: {
+        'slide-up': {
+          '0%': { transform: 'translateY(20px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        'slide-down': {
+          '0%': { transform: 'translateY(-20px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+      },
+      animation: {
+        'slide-up': 'slide-up 0.5s ease-out',
+        'slide-down': 'slide-down 0.5s ease-out',
+      },
     },
   },
   plugins: [],
