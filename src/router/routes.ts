@@ -15,6 +15,7 @@ export const ROUTES = {
     BUNDLES_EDIT: '/bundles/:id/edit',
     CATEGORIES: '/categories',
     TAGS: '/tags',
+    CALENDAR: '/calendar',
     ANALYTICS: '/analytics',
     STATISTICS: '/statistics',
     PROFILE: '/profile',

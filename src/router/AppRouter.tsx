@@ -10,6 +10,7 @@ import { PurchaseEditPage } from '@/pages/purchases/PurchaseEditPage';
 import { ProductsPage } from '@/pages/ProductsPage';
 import { BundlesPage } from '@/pages/BundlesPage';
 import { BundleFormPage } from '@/pages/BundleFormPage';
+import { CalendarPage } from '@/pages/calendar/CalendarPage';
 import { AnalyticsPage } from '@/pages/AnalyticsPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { ROUTES } from './routes';
@@ -71,6 +72,7 @@ export const AppRouter = () => {
           <Route path={ROUTES.APP.PURCHASES} element={<PurchasesPage />} />
           <Route path={ROUTES.APP.PRODUCTS} element={<ProductsPage />} />
           <Route path={ROUTES.APP.BUNDLES} element={<BundlesPage />} />
+          <Route path={ROUTES.APP.CALENDAR} element={<CalendarPage />} />
           <Route path={ROUTES.APP.ANALYTICS} element={<AnalyticsPage />} />
           <Route path={ROUTES.APP.PROFILE} element={<ProfilePage />} />
         </Route>
