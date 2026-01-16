@@ -340,8 +340,8 @@ export const PurchaseEditPage = () => {
             ))}
           </Select>
 
-          {/* Quantity and Price */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Quantity and Price - Responsive grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               type="number"
               step="0.01"
@@ -409,8 +409,8 @@ export const PurchaseEditPage = () => {
           </div>
         </div>
 
-        {/* Submit Button */}
-        <div className="mt-8 sticky bottom-0 pb-6">
+        {/* Submit Button - Fixed positioning to avoid BottomNav overlap */}
+        <div className="mt-8 mb-20">
           <Button
             type="submit"
             fullWidth

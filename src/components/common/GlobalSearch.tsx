@@ -85,12 +85,18 @@ export const GlobalSearch = ({ isOpen, onClose }: GlobalSearchProps) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] bg-black/60 dark:bg-black/80 backdrop-blur-sm">
-      <div className="w-full max-w-2xl mx-4">
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center pt-4 md:pt-[10vh] bg-black/60 dark:bg-black/80 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Search Box */}
-        <div className="bg-white dark:bg-neutral-800 rounded-3xl shadow-2xl overflow-hidden transition-colors duration-200">
+        <div className="bg-white dark:bg-neutral-800 rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden transition-colors duration-200">
           {/* Input */}
-          <div className="flex items-center gap-3 px-6 py-5 border-b border-neutral-200 dark:border-neutral-700">
+          <div className="flex items-center gap-3 px-4 md:px-6 py-4 md:py-5 border-b border-neutral-200 dark:border-neutral-700">
             {loading ? (
               <Loader2 size={24} className="text-primary-500 dark:text-primary-400 animate-spin" />
             ) : (
@@ -114,7 +120,7 @@ export const GlobalSearch = ({ isOpen, onClose }: GlobalSearchProps) => {
           </div>
 
           {/* Results */}
-          <div className="max-h-[60vh] overflow-y-auto">
+          <div className="max-h-[70vh] md:max-h-[60vh] overflow-y-auto">
             {query.length < 2 ? (
               <div className="px-6 py-12 text-center">
                 <Search size={48} className="mx-auto mb-4 text-neutral-300 dark:text-neutral-600" />
@@ -173,10 +179,10 @@ export const GlobalSearch = ({ isOpen, onClose }: GlobalSearchProps) => {
             )}
           </div>
 
-          {/* Footer hint */}
+          {/* Footer hint - Hidden on mobile (keyboard shortcuts not relevant for touch) */}
           {results.length > 0 && (
-            <div className="px-6 py-3 bg-neutral-50 dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-700 flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400">
-              <div className="flex items-center gap-4">
+            <div className="px-4 md:px-6 py-3 bg-neutral-50 dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-700 flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400">
+              <div className="hidden md:flex items-center gap-4">
                 <span className="flex items-center gap-1">
                   <kbd className="px-2 py-1 bg-white dark:bg-neutral-800 rounded border border-neutral-300 dark:border-neutral-600 font-mono">↑</kbd>
                   <kbd className="px-2 py-1 bg-white dark:bg-neutral-800 rounded border border-neutral-300 dark:border-neutral-600 font-mono">↓</kbd>
@@ -191,7 +197,7 @@ export const GlobalSearch = ({ isOpen, onClose }: GlobalSearchProps) => {
                   cerrar
                 </span>
               </div>
-              <span className="text-neutral-400 dark:text-neutral-500">
+              <span className="text-neutral-600 dark:text-neutral-400 font-medium">
                 {results.length} resultado{results.length !== 1 && 's'}
               </span>
             </div>

@@ -13,8 +13,8 @@ export const AppLayout = () => {
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 transition-colors duration-200">
-      {/* Floating Actions */}
-      <div className="fixed top-4 right-4 z-40 flex gap-3">
+      {/* Floating Actions - Hidden on mobile to avoid overlap */}
+      <div className="fixed top-4 right-4 z-30 hidden md:flex gap-3">
         {/* Theme Toggle */}
         <ThemeToggle />
 
@@ -28,7 +28,8 @@ export const AppLayout = () => {
         </button>
       </div>
 
-      <main className="pb-24">
+      {/* Main content with safe bottom padding for BottomNav */}
+      <main className="pb-20 md:pb-24 min-h-screen">
         <Outlet />
       </main>
 

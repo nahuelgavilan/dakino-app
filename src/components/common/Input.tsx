@@ -14,25 +14,28 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-neutral-700 mb-1.5">
+          <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">
             {label}
+            {props.required && <span className="text-primary-500 ml-1">*</span>}
           </label>
         )}
         <div className="relative">
           {icon && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-neutral-500 pointer-events-none">
               {icon}
             </div>
           )}
           <input
             ref={ref}
             className={clsx(
-              'w-full px-4 py-2.5 rounded-lg border transition-colors',
+              'w-full px-4 py-3.5 rounded-lg border transition-colors text-base',
               'focus:outline-none focus:ring-2 focus:ring-offset-0',
-              'disabled:bg-neutral-100 disabled:cursor-not-allowed',
+              'disabled:bg-neutral-100 dark:disabled:bg-neutral-800 disabled:cursor-not-allowed',
+              'bg-white dark:bg-neutral-900',
+              'text-neutral-900 dark:text-neutral-100',
               {
                 'border-error-500 focus:ring-error-500 focus:border-error-500': error,
-                'border-neutral-300 focus:ring-primary-500 focus:border-primary-500': !error,
+                'border-neutral-300 dark:border-neutral-700 focus:ring-primary-500 focus:border-primary-500': !error,
                 'pl-10': icon,
               },
               className
