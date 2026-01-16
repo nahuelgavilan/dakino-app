@@ -3,12 +3,14 @@ import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/common/Input';
 import { Button } from '@/components/common/Button';
+import { TagPicker } from '@/components/tags/TagPicker';
 import { purchaseService } from '@/services/purchase.service';
 import { productService } from '@/services/product.service';
 import { categoryService } from '@/services/category.service';
+import { tagService } from '@/services/tag.service';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/hooks/useToast';
-import type { Product, Category } from '@/types/models';
+import type { Product, Category, Tag } from '@/types/models';
 import { Package, Scale, Calendar, DollarSign, X, Search } from 'lucide-react';
 
 export const PurchaseForm = () => {
@@ -22,6 +24,7 @@ export const PurchaseForm = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showProductSuggestions, setShowProductSuggestions] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
 
   const [formData, setFormData] = useState({
     productName: '',
@@ -103,7 +106,7 @@ export const PurchaseForm = () => {
     setLoading(true);
 
     try {
-      await purchaseService.createPurchase({
+      const purchase = await purchaseService.createPurchase({
         user_id: user.id,
         product_id: selectedProduct?.id || null,
         product_name: formData.productName,
@@ -118,6 +121,14 @@ export const PurchaseForm = () => {
         notes: formData.notes || null,
         image_url: null,
       });
+
+      // Add tags to purchase
+      if (selectedTags.length > 0) {
+        await tagService.setTagsForPurchase(
+          purchase.id,
+          selectedTags.map(tag => tag.id)
+        );
+      }
 
       success('✨ Compra registrada correctamente');
       navigate('/');
@@ -292,6 +303,17 @@ export const PurchaseForm = () => {
               placeholder="Añade comentarios sobre esta compra..."
               rows={3}
               className="w-full px-4 py-3 border-2 border-neutral-200 rounded-2xl focus:border-primary-500 focus:outline-none resize-none transition-colors"
+            />
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label className="block text-sm font-bold text-neutral-700 mb-2">
+              Etiquetas (opcional)
+            </label>
+            <TagPicker
+              selectedTags={selectedTags}
+              onTagsChange={setSelectedTags}
             />
           </div>
         </div>

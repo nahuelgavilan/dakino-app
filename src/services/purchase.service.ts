@@ -8,7 +8,8 @@ export class PurchaseService {
       .select(
         `
         *,
-        category:categories(*)
+        category:categories(*),
+        tags:purchase_tags(tag:tags(*))
       `
       )
       .eq('user_id', userId)
@@ -24,7 +25,8 @@ export class PurchaseService {
       .select(
         `
         *,
-        category:categories(*)
+        category:categories(*),
+        tags:purchase_tags(tag:tags(*))
       `
       )
       .eq('user_id', userId)

@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/hooks/useToast';
 import type { Purchase, Category } from '@/types/models';
 import { Spinner } from '@/components/common/Spinner';
+import { TagBadge } from '@/components/tags/TagBadge';
 import { Plus, Search, Filter, Calendar, DollarSign, Download } from 'lucide-react';
 import { formatDistance } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -288,6 +289,14 @@ export const PurchasesPage = () => {
                             </span>
                           </div>
                         </div>
+
+                        {purchase.tags && purchase.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-3">
+                            {purchase.tags.map((pt) => pt.tag && (
+                              <TagBadge key={pt.tag_id} tag={pt.tag} size="sm" />
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       <div className="text-right">

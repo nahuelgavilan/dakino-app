@@ -24,9 +24,11 @@ export interface Category {
 export interface Tag {
   id: string;
   name: string;
-  color: string | null;
+  color: string;
   user_id: string;
+  usage_count: number;
   created_at: string;
+  updated_at: string;
 }
 
 export interface Product {
@@ -67,17 +69,20 @@ export interface Purchase {
 }
 
 export interface PurchaseTag {
+  id: string;
   purchase_id: string;
   tag_id: string;
+  created_at: string;
   tag?: Tag;
 }
 
 // Tipos para inserciones (sin campos autogenerados)
 export type ProfileInsert = Omit<Profile, 'created_at' | 'updated_at'>;
 export type CategoryInsert = Omit<Category, 'id' | 'created_at'>;
-export type TagInsert = Omit<Tag, 'id' | 'created_at'>;
+export type TagInsert = Omit<Tag, 'id' | 'created_at' | 'updated_at' | 'usage_count'>;
 export type ProductInsert = Omit<Product, 'id' | 'created_at' | 'updated_at' | 'last_used_at' | 'usage_count' | 'category'>;
 export type PurchaseInsert = Omit<Purchase, 'id' | 'created_at' | 'updated_at' | 'category' | 'tags'>;
+export type PurchaseTagInsert = Omit<PurchaseTag, 'id' | 'created_at' | 'tag'>;
 
 export interface Bundle {
   id: string;
@@ -115,7 +120,7 @@ export type BundleItemInsert = Omit<BundleItem, 'id' | 'created_at'>;
 // Tipos para actualizaciones (todos los campos opcionales excepto id)
 export type ProfileUpdate = Partial<Omit<Profile, 'id' | 'created_at' | 'updated_at'>>;
 export type CategoryUpdate = Partial<Omit<Category, 'id' | 'created_at'>>;
-export type TagUpdate = Partial<Omit<Tag, 'id' | 'created_at' | 'user_id'>>;
+export type TagUpdate = Partial<Omit<Tag, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'usage_count'>>;
 export type ProductUpdate = Partial<Omit<Product, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'category'>>;
 export type PurchaseUpdate = Partial<Omit<Purchase, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'category' | 'tags'>>;
 export type BundleUpdate = Partial<Omit<Bundle, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'items'>>;

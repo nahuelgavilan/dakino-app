@@ -2,6 +2,7 @@ import { ShoppingBag } from 'lucide-react';
 import type { Purchase } from '@/types/models';
 import { formatDistance } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { TagBadge } from '@/components/tags/TagBadge';
 
 interface RecentPurchasesProps {
   purchases: Purchase[];
@@ -72,6 +73,13 @@ export const RecentPurchases = ({ purchases }: RecentPurchasesProps) => {
                       ? `${purchase.quantity} unidades`
                       : `${purchase.quantity} kg`}
                   </p>
+                )}
+                {purchase.tags && purchase.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {purchase.tags.map((pt) => pt.tag && (
+                      <TagBadge key={pt.tag_id} tag={pt.tag} size="sm" />
+                    ))}
+                  </div>
                 )}
               </div>
 
