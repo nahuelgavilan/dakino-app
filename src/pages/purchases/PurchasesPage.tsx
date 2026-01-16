@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/useToast';
 import type { Purchase, Category, Tag } from '@/types/models';
 import { Spinner } from '@/components/common/Spinner';
 import { TagBadge } from '@/components/tags/TagBadge';
-import { Plus, Search, Filter, Calendar, DollarSign, Download, X } from 'lucide-react';
+import { Plus, Search, Filter, Calendar, DollarSign, Download, X, Edit2 } from 'lucide-react';
 import { formatDistance } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { exportToCSV, exportToJSON } from '@/utils/export';
@@ -402,7 +402,7 @@ export const PurchasesPage = () => {
               return (
                 <div
                   key={purchase.id}
-                  className="group bg-white rounded-2xl p-5 shadow-md hover:shadow-xl transition-all duration-300 relative overflow-hidden"
+                  className="group bg-white dark:bg-neutral-800 rounded-2xl p-5 shadow-md hover:shadow-xl transition-all duration-300 relative overflow-hidden"
                   style={{
                     animationDelay: `${index * 30}ms`,
                   }}
@@ -412,14 +412,23 @@ export const PurchasesPage = () => {
                     className={`absolute left-0 top-0 bottom-0 w-2 bg-gradient-to-b ${gradient}`}
                   />
 
+                  {/* Edit Button (appears on hover) */}
+                  <button
+                    onClick={() => navigate(`/purchases/${purchase.id}`)}
+                    className="absolute top-4 right-4 p-2 bg-white dark:bg-neutral-700 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-xl shadow-md opacity-0 group-hover:opacity-100 transition-all hover:scale-110"
+                    title="Editar compra"
+                  >
+                    <Edit2 size={18} className="text-primary-500 dark:text-primary-400" />
+                  </button>
+
                   <div className="pl-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-black text-xl text-neutral-900 mb-1">
+                        <h3 className="font-black text-xl text-neutral-900 dark:text-neutral-100 mb-1">
                           {purchase.product_name}
                         </h3>
 
-                        <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-500 mb-3">
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-neutral-500 dark:text-neutral-400 mb-3">
                           {purchase.category && (
                             <>
                               <span className="font-semibold">{purchase.category.name}</span>
@@ -437,14 +446,14 @@ export const PurchasesPage = () => {
                         </div>
 
                         <div className="flex items-center gap-4 text-sm">
-                          <div className="flex items-center gap-1 text-neutral-600">
+                          <div className="flex items-center gap-1 text-neutral-600 dark:text-neutral-400">
                             {purchase.unit_type === 'unit' ? '📦' : '⚖️'}
                             <span className="font-medium">
                               {purchase.quantity}{' '}
                               {purchase.unit_type === 'unit' ? 'unidades' : 'kg'}
                             </span>
                           </div>
-                          <div className="flex items-center gap-1 text-neutral-600">
+                          <div className="flex items-center gap-1 text-neutral-600 dark:text-neutral-400">
                             <DollarSign size={14} />
                             <span className="font-medium">
                               ${purchase.unit_price?.toFixed(2)}/
@@ -463,15 +472,15 @@ export const PurchasesPage = () => {
                       </div>
 
                       <div className="text-right">
-                        <div className="text-3xl font-black text-primary-500">
+                        <div className="text-3xl font-black text-primary-500 dark:text-primary-400">
                           ${purchase.total_price.toFixed(2)}
                         </div>
                       </div>
                     </div>
 
                     {purchase.notes && (
-                      <div className="mt-3 pt-3 border-t border-neutral-100">
-                        <p className="text-sm text-neutral-600 italic">
+                      <div className="mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-700">
+                        <p className="text-sm text-neutral-600 dark:text-neutral-400 italic">
                           "{purchase.notes}"
                         </p>
                       </div>

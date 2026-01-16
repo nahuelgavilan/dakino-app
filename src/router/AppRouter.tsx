@@ -6,6 +6,7 @@ import { SignupPage } from '@/pages/auth/SignupPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { PurchasesPage } from '@/pages/purchases/PurchasesPage';
 import { PurchaseFormPage } from '@/pages/purchases/PurchaseFormPage';
+import { PurchaseEditPage } from '@/pages/purchases/PurchaseEditPage';
 import { ProductsPage } from '@/pages/ProductsPage';
 import { BundlesPage } from '@/pages/BundlesPage';
 import { BundleFormPage } from '@/pages/BundleFormPage';
@@ -30,6 +31,14 @@ export const AppRouter = () => {
           element={
             <ProtectedRoute>
               <PurchaseFormPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={ROUTES.APP.PURCHASES_EDIT}
+          element={
+            <ProtectedRoute>
+              <PurchaseEditPage />
             </ProtectedRoute>
           }
         />
