@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/hooks/useToast';
 import type { Bundle } from '@/types/models';
 import { Spinner } from '@/components/common/Spinner';
+import { BundleExecutionModal } from '@/components/bundles/BundleExecutionModal';
 import { Plus, ShoppingCart, Star, Edit2, Trash2, Play } from 'lucide-react';
 
 export const BundlesPage = () => {
@@ -14,6 +15,7 @@ export const BundlesPage = () => {
   const [loading, setLoading] = useState(true);
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [executingBundle, setExecutingBundle] = useState<string | null>(null);
+  const [bundleToExecute, setBundleToExecute] = useState<Bundle | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -47,16 +49,23 @@ export const BundlesPage = () => {
     }
   };
 
-  const handleExecuteBundle = async (bundle: Bundle) => {
-    if (!user) return;
-
-    if (!confirm(`¿Registrar todas las compras de "${bundle.name}"?`)) return;
+  const handleExecuteBundle = async (
+    items: Array<any>,
+    purchaseDate: string
+  ) => {
+    if (!user || !bundleToExecute) return;
 
     try {
-      setExecutingBundle(bundle.id);
-      await bundleService.executeBundle(bundle.id, user.id);
+      setExecutingBundle(bundleToExecute.id);
+      await bundleService.executeBundle(
+        bundleToExecute.id,
+        user.id,
+        items,
+        purchaseDate
+      );
       await loadBundles();
-      success(`✨ ${bundle.items?.length || 0} compras registradas correctamente`);
+      success(`✨ ${items.length} compras registradas correctamente`);
+      setBundleToExecute(null);
     } catch (error) {
       console.error('Error executing bundle:', error);
       showError('Error al ejecutar el bundle');
@@ -238,21 +247,12 @@ export const BundlesPage = () => {
 
                     {/* Execute Button */}
                     <button
-                      onClick={() => handleExecuteBundle(bundle)}
+                      onClick={() => setBundleToExecute(bundle)}
                       disabled={isExecuting || !bundle.items || bundle.items.length === 0}
                       className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-accent-500 to-orange-600 text-white font-bold rounded-xl hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isExecuting ? (
-                        <>
-                          <Spinner size="sm" />
-                          Registrando compras...
-                        </>
-                      ) : (
-                        <>
-                          <Play size={20} />
-                          Registrar Todas las Compras
-                        </>
-                      )}
+                      <Play size={20} />
+                      Registrar Todas las Compras
                     </button>
                   </div>
                 </div>
@@ -261,6 +261,16 @@ export const BundlesPage = () => {
           </div>
         )}
       </div>
+
+      {/* Bundle Execution Modal */}
+      {bundleToExecute && (
+        <BundleExecutionModal
+          bundle={bundleToExecute}
+          onClose={() => setBundleToExecute(null)}
+          onConfirm={handleExecuteBundle}
+          isLoading={executingBundle === bundleToExecute.id}
+        />
+      )}
     </div>
   );
 };

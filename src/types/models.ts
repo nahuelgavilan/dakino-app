@@ -121,6 +121,7 @@ export interface BundleItem {
   product_id: string | null;
   product_name: string;
   category_id: string | null;
+  store_id: string | null;
   unit_type: UnitType;
   quantity: number | null;
   weight: number | null;

@@ -36,6 +36,7 @@ export const PurchaseForm = () => {
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [showCategoryCreate, setShowCategoryCreate] = useState(false);
   const [showStoreCreate, setShowStoreCreate] = useState(false);
+  const [catalogSearch, setCatalogSearch] = useState('');
 
   const [formData, setFormData] = useState({
     productName: '',
@@ -158,6 +159,15 @@ export const PurchaseForm = () => {
       throw error;
     }
   };
+
+  // Filter catalog products based on search
+  const filteredCatalogProducts = catalogSearch.trim()
+    ? allProducts.filter(product =>
+        product.name.toLowerCase().includes(catalogSearch.toLowerCase()) ||
+        product.category?.name.toLowerCase().includes(catalogSearch.toLowerCase()) ||
+        product.store?.name.toLowerCase().includes(catalogSearch.toLowerCase())
+      )
+    : allProducts;
 
   const calculateTotal = (): number => {
     const quantity = parseFloat(formData.quantity) || 0;
@@ -494,49 +504,113 @@ export const PurchaseForm = () => {
 
       {/* Product Catalog Modal */}
       {showProductCatalog && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-2xl max-h-[80vh] flex flex-col">
-            <div className="p-6 border-b border-neutral-200 flex items-center justify-between">
-              <h2 className="text-2xl font-black text-neutral-900">Catálogo de Productos</h2>
-              <button
-                onClick={() => setShowProductCatalog(false)}
-                className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
-              >
-                <X size={24} />
-              </button>
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowProductCatalog(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setShowProductCatalog(false);
+          }}
+        >
+          <div className="bg-white dark:bg-neutral-800 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-3xl max-h-[85vh] flex flex-col animate-slide-up">
+            {/* Header */}
+            <div className="p-4 sm:p-6 border-b border-neutral-200 dark:border-neutral-700">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-neutral-100">
+                  Catálogo de Productos
+                </h2>
+                <button
+                  onClick={() => setShowProductCatalog(false)}
+                  className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-full transition-colors"
+                  aria-label="Cerrar"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              {/* Search within catalog */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={18} />
+                <input
+                  type="text"
+                  value={catalogSearch}
+                  onChange={(e) => setCatalogSearch(e.target.value)}
+                  placeholder="Buscar en catálogo..."
+                  className="w-full pl-10 pr-4 py-2.5 border-2 border-neutral-200 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 rounded-xl focus:border-primary-500 focus:outline-none text-sm transition-colors"
+                  autoFocus
+                />
+              </div>
             </div>
+
+            {/* Products Grid */}
             <div className="flex-1 overflow-y-auto p-4">
               {allProducts.length === 0 ? (
                 <div className="text-center py-12">
-                  <div className="text-5xl mb-4">📦</div>
-                  <p className="text-neutral-600">No tienes productos guardados aún</p>
-                  <p className="text-sm text-neutral-400 mt-2">Escribe un nombre arriba y créalo</p>
+                  <div className="text-6xl mb-4">📦</div>
+                  <p className="text-neutral-600 dark:text-neutral-400 font-medium">No tienes productos guardados aún</p>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-500 mt-2">Crea tu primer producto escribiendo un nombre arriba</p>
+                </div>
+              ) : filteredCatalogProducts.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">🔍</div>
+                  <p className="text-neutral-600 dark:text-neutral-400 font-medium">No se encontraron productos</p>
+                  <p className="text-sm text-neutral-500 dark:text-neutral-500 mt-2">Intenta con otro término de búsqueda</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {allProducts.map((product) => (
+                  {filteredCatalogProducts.map((product) => (
                     <button
                       key={product.id}
                       type="button"
                       onClick={() => {
                         selectProduct(product);
                         setShowProductCatalog(false);
+                        setCatalogSearch('');
                       }}
-                      className="text-left p-4 border-2 border-neutral-200 rounded-xl hover:border-primary-500 hover:bg-primary-50 transition-all"
+                      className="text-left p-4 border-2 border-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 rounded-2xl hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all group"
                     >
-                      <div className="font-bold text-neutral-900">{product.name}</div>
-                      <div className="text-sm text-neutral-500 mt-1 flex items-center gap-2">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <div className="font-bold text-neutral-900 dark:text-neutral-100 group-hover:text-primary-600 dark:group-hover:text-primary-400">
+                            {product.name}
+                          </div>
+                          {product.category && (
+                            <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                              {product.category.icon} {product.category.name}
+                            </div>
+                          )}
+                        </div>
                         {product.default_price && (
-                          <span>${product.default_price.toFixed(2)}</span>
+                          <div className="text-lg font-black text-primary-600 dark:text-primary-400">
+                            ${product.default_price.toFixed(2)}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+                        {product.store && (
+                          <span className="flex items-center gap-1">
+                            {product.store.icon} {product.store.name}
+                          </span>
                         )}
                         {product.usage_count > 0 && (
-                          <span>• {product.usage_count}x usado</span>
+                          <span className="ml-auto bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded-lg font-medium">
+                            {product.usage_count}x usado
+                          </span>
                         )}
                       </div>
                     </button>
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* Footer Info */}
+            <div className="p-4 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50">
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
+                {filteredCatalogProducts.length} de {allProducts.length} productos • Haz clic para seleccionar
+              </p>
             </div>
           </div>
         </div>

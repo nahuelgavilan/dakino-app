@@ -9,6 +9,7 @@ export class PurchaseService {
         `
         *,
         category:categories(*),
+        store:stores(*),
         tags:purchase_tags(tag:tags(*))
       `
       )
@@ -26,6 +27,7 @@ export class PurchaseService {
         `
         *,
         category:categories(*),
+        store:stores(*),
         tags:purchase_tags(tag:tags(*))
       `
       )
@@ -52,6 +54,7 @@ export class PurchaseService {
         `
         *,
         category:categories(*),
+        store:stores(*),
         tags:purchase_tags(tag:tags(*))
       `
       )
@@ -83,6 +86,7 @@ export class PurchaseService {
         `
         *,
         category:categories(*),
+        store:stores(*),
         tags:purchase_tags(tag:tags(*))
       `
       )

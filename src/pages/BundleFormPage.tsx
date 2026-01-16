@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { bundleService } from '@/services/bundle.service';
 import { productService } from '@/services/product.service';
+import { storeService } from '@/services/store.service';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/hooks/useToast';
-import type { BundleInsert, BundleItemInsert, Product } from '@/types/models';
+import type { BundleInsert, BundleItemInsert, Product, Store } from '@/types/models';
 import { X, Plus, Trash2, Package } from 'lucide-react';
 
 const BUNDLE_ICONS = ['📦', '🛒', '🏪', '🍎', '🧹', '🏠', '💊', '🎮', '👕', '🚗', '📱', '✨'];
@@ -15,9 +16,11 @@ const BUNDLE_COLORS = [
 
 interface BundleItemForm {
   tempId: string;
+  id?: string; // Existing item ID for updates
   product_id: string | null;
   product_name: string;
   category_id: string | null;
+  store_id: string | null;
   unit_type: 'unit' | 'weight';
   quantity: string;
   weight: string;
@@ -39,14 +42,18 @@ export const BundleFormPage = () => {
     color: '#FF1744',
   });
   const [items, setItems] = useState<BundleItemForm[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
   const [productSearch, setProductSearch] = useState('');
   const [productSuggestions, setProductSuggestions] = useState<Product[]>([]);
 
   useEffect(() => {
+    if (user) {
+      loadStores();
+    }
     if (id) {
       loadBundle();
     }
-  }, [id]);
+  }, [id, user]);
 
   useEffect(() => {
     if (productSearch.length >= 2 && user) {
@@ -55,6 +62,16 @@ export const BundleFormPage = () => {
       setProductSuggestions([]);
     }
   }, [productSearch, user]);
+
+  const loadStores = async () => {
+    if (!user) return;
+    try {
+      const storesData = await storeService.getStores(user.id);
+      setStores(storesData);
+    } catch (error) {
+      console.error('Error loading stores:', error);
+    }
+  };
 
   const loadBundle = async () => {
     if (!id) return;
@@ -71,9 +88,11 @@ export const BundleFormPage = () => {
         if (bundle.items) {
           setItems(bundle.items.map(item => ({
             tempId: item.id,
+            id: item.id, // Save existing ID for updates
             product_id: item.product_id,
             product_name: item.product_name,
             category_id: item.category_id,
+            store_id: item.store_id,
             unit_type: item.unit_type,
             quantity: item.quantity?.toString() || '',
             weight: item.weight?.toString() || '',
@@ -104,6 +123,7 @@ export const BundleFormPage = () => {
       product_id: product?.id || null,
       product_name: product?.name || '',
       category_id: product?.category_id || null,
+      store_id: product?.store_id || null,
       unit_type: product?.unit_type || 'unit',
       quantity: '',
       weight: '',
@@ -158,7 +178,30 @@ export const BundleFormPage = () => {
         await bundleService.updateBundle(id, bundleData);
         bundleId = id;
 
-        // TODO: Update items (for now, we skip this - would need to compare and update)
+        // Delete all existing items and recreate (simpler than diff)
+        const existingBundle = await bundleService.getBundleById(id);
+        if (existingBundle?.items) {
+          for (const item of existingBundle.items) {
+            await bundleService.removeBundleItem(item.id);
+          }
+        }
+
+        // Add new items
+        for (const item of items) {
+          const itemData: BundleItemInsert = {
+            bundle_id: bundleId,
+            product_id: item.product_id,
+            product_name: item.product_name,
+            category_id: item.category_id,
+            store_id: item.store_id,
+            unit_type: item.unit_type,
+            quantity: item.unit_type === 'unit' && item.quantity ? parseInt(item.quantity) : null,
+            weight: item.unit_type === 'weight' && item.weight ? parseFloat(item.weight) : null,
+            estimated_price: item.estimated_price ? parseFloat(item.estimated_price) : null,
+            notes: item.notes || null,
+          };
+          await bundleService.addItemToBundle(itemData);
+        }
       } else {
         // Create new bundle
         const createdBundle = await bundleService.createBundle(bundleData);
@@ -171,6 +214,7 @@ export const BundleFormPage = () => {
             product_id: item.product_id,
             product_name: item.product_name,
             category_id: item.category_id,
+            store_id: item.store_id,
             unit_type: item.unit_type,
             quantity: item.unit_type === 'unit' && item.quantity ? parseInt(item.quantity) : null,
             weight: item.unit_type === 'weight' && item.weight ? parseFloat(item.weight) : null,
@@ -353,7 +397,7 @@ export const BundleFormPage = () => {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3 mb-3">
                     <div>
                       <label className="block text-xs font-bold text-neutral-600 mb-1">
                         {item.unit_type === 'unit' ? 'Cantidad' : 'Peso (kg)'}
@@ -382,6 +426,25 @@ export const BundleFormPage = () => {
                         className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm focus:border-accent-500 focus:outline-none"
                       />
                     </div>
+                  </div>
+
+                  {/* Store selector */}
+                  <div>
+                    <label className="block text-xs font-bold text-neutral-600 mb-1">
+                      Tienda (opcional)
+                    </label>
+                    <select
+                      value={item.store_id || ''}
+                      onChange={(e) => updateItem(item.tempId, 'store_id', e.target.value)}
+                      className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm focus:border-accent-500 focus:outline-none"
+                    >
+                      <option value="">Sin tienda específica</option>
+                      {stores.map((store) => (
+                        <option key={store.id} value={store.id}>
+                          {store.icon} {store.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               ))}
