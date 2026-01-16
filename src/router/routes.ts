@@ -14,6 +14,7 @@ export const ROUTES = {
     BUNDLES_NEW: '/bundles/new',
     BUNDLES_EDIT: '/bundles/:id/edit',
     CATEGORIES: '/categories',
+    STORES: '/stores',
     TAGS: '/tags',
     CALENDAR: '/calendar',
     ANALYTICS: '/analytics',

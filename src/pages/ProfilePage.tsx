@@ -1,6 +1,6 @@
 import { useAuthStore } from '@/store/authStore';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, User, Mail, Calendar, Package, ShoppingBag } from 'lucide-react';
+import { LogOut, User, Mail, Calendar, Package, ShoppingBag, Tag, Store, ChevronRight, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -90,6 +90,49 @@ export const ProfilePage = () => {
             </div>
           </div>
 
+          {/* Settings Section */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Settings size={18} className="text-neutral-600" />
+              <h3 className="text-sm font-black text-neutral-700 uppercase tracking-wide">
+                Configuración
+              </h3>
+            </div>
+            <div className="space-y-2">
+              <button
+                onClick={() => navigate('/categories')}
+                className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl hover:shadow-md transition-all active:scale-98 group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <Tag size={20} className="text-green-600" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-neutral-900">Mis Categorías</p>
+                    <p className="text-xs text-neutral-600">Gestionar categorías de productos</p>
+                  </div>
+                </div>
+                <ChevronRight size={20} className="text-neutral-400 group-hover:text-neutral-600 transition-colors" />
+              </button>
+
+              <button
+                onClick={() => navigate('/stores')}
+                className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl hover:shadow-md transition-all active:scale-98 group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Store size={20} className="text-blue-600" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-neutral-900">Mis Tiendas</p>
+                    <p className="text-xs text-neutral-600">Gestionar supermercados y tiendas</p>
+                  </div>
+                </div>
+                <ChevronRight size={20} className="text-neutral-400 group-hover:text-neutral-600 transition-colors" />
+              </button>
+            </div>
+          </div>
+
           {/* Logout Button */}
           <button
             onClick={handleLogout}
@@ -125,13 +168,6 @@ export const ProfilePage = () => {
           </div>
         </div>
 
-        {/* Coming Soon Section */}
-        <div className="mt-6 bg-gradient-to-r from-neutral-100 to-neutral-50 rounded-2xl p-6 text-center">
-          <p className="text-sm text-neutral-500 font-semibold mb-2">🚀 Próximamente</p>
-          <p className="text-xs text-neutral-400">
-            Edición de perfil, exportación de datos, temas, y más...
-          </p>
-        </div>
       </div>
     </div>
   );

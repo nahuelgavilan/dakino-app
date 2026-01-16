@@ -13,6 +13,8 @@ import { BundleFormPage } from '@/pages/BundleFormPage';
 import { CalendarPage } from '@/pages/calendar/CalendarPage';
 import { AnalyticsPage } from '@/pages/AnalyticsPage';
 import { ProfilePage } from '@/pages/ProfilePage';
+import { CategoryManagementPage } from '@/pages/settings/CategoryManagementPage';
+import { StoreManagementPage } from '@/pages/settings/StoreManagementPage';
 import { ROUTES } from './routes';
 
 // Páginas temporales
@@ -56,6 +58,22 @@ export const AppRouter = () => {
           element={
             <ProtectedRoute>
               <BundleFormPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={ROUTES.APP.CATEGORIES}
+          element={
+            <ProtectedRoute>
+              <CategoryManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={ROUTES.APP.STORES}
+          element={
+            <ProtectedRoute>
+              <StoreManagementPage />
             </ProtectedRoute>
           }
         />
