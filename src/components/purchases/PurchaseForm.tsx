@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/common/Button';
-import { Select } from '@/components/common/Select';
 import { TagPicker } from '@/components/tags/TagPicker';
 import { QuickProductCreate } from '@/components/purchases/QuickProductCreate';
+import { QuickCreateModal } from '@/components/common/QuickCreateModal';
 import { purchaseService } from '@/services/purchase.service';
 import { productService } from '@/services/product.service';
 import { categoryService } from '@/services/category.service';
@@ -13,7 +13,10 @@ import { storeService } from '@/services/store.service';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/hooks/useToast';
 import type { Product, Category, Tag, Store } from '@/types/models';
-import { Package, Scale, Calendar, X, Search, Tag as TagIcon, Store as StoreIcon, Plus } from 'lucide-react';
+import { Package, Scale, X, Search, Plus, List } from 'lucide-react';
+
+const CATEGORY_ICONS = ['🍎', '🥕', '🥖', '🥛', '🍖', '🐟', '🧀', '🍫', '🥤', '🧴', '🧼', '🏠'];
+const STORE_ICONS = ['🏪', '🛒', '🏬', '🛍️', '🏢', '🏭', '🏛️', '🏦', '🏨', '🏩', '🏫'];
 
 export const PurchaseForm = () => {
   const navigate = useNavigate();
@@ -23,12 +26,16 @@ export const PurchaseForm = () => {
   const [unitType, setUnitType] = useState<'unit' | 'weight'>('unit');
   const [productSearch, setProductSearch] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showProductSuggestions, setShowProductSuggestions] = useState(false);
+  const [showProductCatalog, setShowProductCatalog] = useState(false);
   const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
   const [showQuickCreate, setShowQuickCreate] = useState(false);
+  const [showCategoryCreate, setShowCategoryCreate] = useState(false);
+  const [showStoreCreate, setShowStoreCreate] = useState(false);
 
   const [formData, setFormData] = useState({
     productName: '',
@@ -44,6 +51,7 @@ export const PurchaseForm = () => {
 
   useEffect(() => {
     loadCategoriesAndStores();
+    loadAllProducts();
   }, []);
 
   useEffect(() => {
@@ -67,6 +75,16 @@ export const PurchaseForm = () => {
     } catch (err) {
       console.error('Error loading data:', err);
       showError('Error al cargar categorías y tiendas');
+    }
+  };
+
+  const loadAllProducts = async () => {
+    if (!user) return;
+    try {
+      const allProductsData = await productService.getProducts(user.id);
+      setAllProducts(allProductsData);
+    } catch (err) {
+      console.error('Error loading products:', err);
     }
   };
 
@@ -98,6 +116,47 @@ export const PurchaseForm = () => {
 
   const handleProductCreated = (product: Product) => {
     selectProduct(product);
+    loadAllProducts(); // Reload to include new product
+  };
+
+  const handleCreateCategory = async (name: string, icon: string) => {
+    if (!user) return;
+    try {
+      const newCategory = await categoryService.createCategory({
+        user_id: user.id,
+        name,
+        icon,
+        color: '#3B82F6',
+        is_default: false,
+      });
+      await loadCategoriesAndStores();
+      setFormData(prev => ({ ...prev, categoryId: newCategory.id }));
+      success(`Categoría "${name}" creada`);
+    } catch (error) {
+      console.error('Error creating category:', error);
+      showError('Error al crear la categoría');
+      throw error;
+    }
+  };
+
+  const handleCreateStore = async (name: string, icon: string) => {
+    if (!user) return;
+    try {
+      const newStore = await storeService.createStore({
+        user_id: user.id,
+        name,
+        icon,
+        color: '#10B981',
+        is_favorite: false,
+      });
+      await loadCategoriesAndStores();
+      setFormData(prev => ({ ...prev, storeId: newStore.id }));
+      success(`Tienda "${name}" creada`);
+    } catch (error) {
+      console.error('Error creating store:', error);
+      showError('Error al crear la tienda');
+      throw error;
+    }
   };
 
   const calculateTotal = (): number => {
@@ -114,8 +173,8 @@ export const PurchaseForm = () => {
       return;
     }
 
-    if (!formData.productName || !formData.categoryId || !formData.storeId || !formData.quantity || !formData.unitPrice) {
-      showError('Por favor completa todos los campos requeridos');
+    if (!formData.productName || !formData.quantity || !formData.unitPrice) {
+      showError('Por favor completa producto, cantidad y precio');
       return;
     }
 
@@ -208,22 +267,36 @@ export const PurchaseForm = () => {
         </div>
 
         <div className="bg-white rounded-3xl p-6 shadow-xl space-y-6">
-          {/* Product Search with Autocomplete */}
+          {/* Product Search with Catalog Button */}
           <div className="relative">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" size={20} />
-              <input
-                type="text"
-                value={productSearch}
-                onChange={(e) => {
-                  setProductSearch(e.target.value);
-                  setFormData(prev => ({ ...prev, productName: e.target.value }));
-                }}
-                onFocus={() => products.length > 0 && setShowProductSuggestions(true)}
-                placeholder="Buscar producto..."
-                className="w-full pl-12 pr-4 py-4 border-2 border-neutral-200 rounded-2xl focus:border-primary-500 focus:outline-none text-lg font-medium transition-colors"
-                required
-              />
+            <label className="block text-sm font-bold text-neutral-700 mb-2">
+              Producto *
+            </label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" size={20} />
+                <input
+                  type="text"
+                  value={productSearch}
+                  onChange={(e) => {
+                    setProductSearch(e.target.value);
+                    setFormData(prev => ({ ...prev, productName: e.target.value }));
+                  }}
+                  onFocus={() => products.length > 0 && setShowProductSuggestions(true)}
+                  placeholder="Buscar o escribir nombre..."
+                  className="w-full pl-12 pr-4 py-3 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none font-medium transition-colors"
+                  required
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowProductCatalog(true)}
+                className="px-4 py-3 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200 transition-colors flex items-center gap-2 whitespace-nowrap"
+                title="Ver catálogo completo"
+              >
+                <List size={20} />
+                <span className="text-sm font-bold">Catálogo</span>
+              </button>
             </div>
 
             {/* Suggestions Dropdown */}
@@ -263,43 +336,69 @@ export const PurchaseForm = () => {
             )}
           </div>
 
-          {/* Category */}
-          <Select
-            label="Categoría"
-            icon={<TagIcon size={20} />}
-            value={formData.categoryId}
-            onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
-            required
-          >
-            <option value="">Selecciona una categoría</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.icon} {category.name}
-              </option>
-            ))}
-          </Select>
+          {/* Category with Quick Create */}
+          <div>
+            <label className="block text-sm font-bold text-neutral-700 mb-2">
+              Categoría (opcional)
+            </label>
+            <div className="flex gap-2">
+              <select
+                value={formData.categoryId}
+                onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
+                className="flex-1 px-4 py-3 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors"
+              >
+                <option value="">Sin categoría...</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.icon} {category.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setShowCategoryCreate(true)}
+                className="px-4 py-3 bg-primary-100 text-primary-600 rounded-xl hover:bg-primary-200 transition-colors"
+                title="Crear nueva categoría"
+              >
+                <Plus size={20} />
+              </button>
+            </div>
+          </div>
 
-          {/* Store */}
-          <Select
-            label="Tienda / Supermercado"
-            icon={<StoreIcon size={20} />}
-            value={formData.storeId}
-            onChange={(e) => setFormData(prev => ({ ...prev, storeId: e.target.value }))}
-            required
-          >
-            <option value="">Selecciona una tienda</option>
-            {stores.map((store) => (
-              <option key={store.id} value={store.id}>
-                {store.icon} {store.name}
-              </option>
-            ))}
-          </Select>
+          {/* Store with Quick Create */}
+          <div>
+            <label className="block text-sm font-bold text-neutral-700 mb-2">
+              Tienda (opcional)
+            </label>
+            <div className="flex gap-2">
+              <select
+                value={formData.storeId}
+                onChange={(e) => setFormData(prev => ({ ...prev, storeId: e.target.value }))}
+                className="flex-1 px-4 py-3 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors"
+              >
+                <option value="">Sin tienda específica...</option>
+                {stores.map((store) => (
+                  <option key={store.id} value={store.id}>
+                    {store.icon} {store.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setShowStoreCreate(true)}
+                className="px-4 py-3 bg-secondary-100 text-secondary-600 rounded-xl hover:bg-secondary-200 transition-colors"
+                title="Crear nueva tienda"
+              >
+                <Plus size={20} />
+              </button>
+            </div>
+          </div>
 
-          {/* Quantity, Price, and Date - Better mobile layout */}
+          {/* Cantidad y Precio lado a lado */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-bold text-neutral-700 mb-2">
-                {unitType === 'unit' ? 'Cantidad' : 'Peso (kg)'}
+              <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+                {unitType === 'unit' ? 'Cantidad *' : 'Peso (kg) *'}
               </label>
               <input
                 type="number"
@@ -308,16 +407,16 @@ export const PurchaseForm = () => {
                 onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
                 placeholder={unitType === 'unit' ? '1' : '0.5'}
                 required
-                className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors text-lg font-bold text-center"
+                className="w-full px-3 py-2.5 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors text-lg font-bold text-center"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-neutral-700 mb-2">
-                {unitType === 'unit' ? 'Precio unit.' : 'Precio/kg'}
+              <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+                {unitType === 'unit' ? 'Precio unit. *' : 'Precio/kg *'}
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 font-bold">$</span>
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-400 font-bold text-sm">$</span>
                 <input
                   type="number"
                   step="0.01"
@@ -325,32 +424,31 @@ export const PurchaseForm = () => {
                   onChange={(e) => setFormData(prev => ({ ...prev, unitPrice: e.target.value }))}
                   placeholder="0.00"
                   required
-                  className="w-full pl-8 pr-4 py-3 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors text-lg font-bold text-center"
+                  className="w-full pl-7 pr-3 py-2.5 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors text-lg font-bold text-center"
                 />
               </div>
             </div>
           </div>
 
-          {/* Total Display */}
+          {/* Total Display - más compacto */}
           {formData.quantity && formData.unitPrice && (
-            <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl p-5 text-white">
-              <p className="text-xs font-bold opacity-90 mb-1">Total a pagar</p>
-              <p className="text-4xl font-black">${total.toFixed(2)}</p>
+            <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl p-4 text-white">
+              <p className="text-[10px] font-bold opacity-90">Total a pagar</p>
+              <p className="text-3xl font-black">${total.toFixed(2)}</p>
             </div>
           )}
 
-          {/* Date - Compact design */}
+          {/* Fecha compacta */}
           <div>
-            <label className="block text-sm font-bold text-neutral-700 mb-2">
-              <Calendar className="inline mr-1" size={16} />
-              Fecha de compra
+            <label className="block text-xs font-bold text-neutral-700 mb-1.5">
+              Fecha *
             </label>
             <input
               type="date"
               value={formData.purchaseDate}
               onChange={(e) => setFormData(prev => ({ ...prev, purchaseDate: e.target.value }))}
               required
-              className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors font-bold"
+              className="w-full px-3 py-2.5 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors text-sm font-bold"
             />
           </div>
 
@@ -394,6 +492,56 @@ export const PurchaseForm = () => {
         </div>
       </form>
 
+      {/* Product Catalog Modal */}
+      {showProductCatalog && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-2xl max-h-[80vh] flex flex-col">
+            <div className="p-6 border-b border-neutral-200 flex items-center justify-between">
+              <h2 className="text-2xl font-black text-neutral-900">Catálogo de Productos</h2>
+              <button
+                onClick={() => setShowProductCatalog(false)}
+                className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {allProducts.length === 0 ? (
+                <div className="text-center py-12">
+                  <div className="text-5xl mb-4">📦</div>
+                  <p className="text-neutral-600">No tienes productos guardados aún</p>
+                  <p className="text-sm text-neutral-400 mt-2">Escribe un nombre arriba y créalo</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {allProducts.map((product) => (
+                    <button
+                      key={product.id}
+                      type="button"
+                      onClick={() => {
+                        selectProduct(product);
+                        setShowProductCatalog(false);
+                      }}
+                      className="text-left p-4 border-2 border-neutral-200 rounded-xl hover:border-primary-500 hover:bg-primary-50 transition-all"
+                    >
+                      <div className="font-bold text-neutral-900">{product.name}</div>
+                      <div className="text-sm text-neutral-500 mt-1 flex items-center gap-2">
+                        {product.default_price && (
+                          <span>${product.default_price.toFixed(2)}</span>
+                        )}
+                        {product.usage_count > 0 && (
+                          <span>• {product.usage_count}x usado</span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Quick Product Create Modal */}
       <QuickProductCreate
         isOpen={showQuickCreate}
@@ -403,6 +551,25 @@ export const PurchaseForm = () => {
         stores={stores}
         initialName={productSearch}
         initialUnitType={unitType}
+      />
+
+      {/* Quick Create Modals for Category and Store */}
+      <QuickCreateModal
+        isOpen={showCategoryCreate}
+        onClose={() => setShowCategoryCreate(false)}
+        onSave={handleCreateCategory}
+        title="Nueva Categoría"
+        placeholder="Ej: Frutas"
+        iconSuggestions={CATEGORY_ICONS}
+      />
+
+      <QuickCreateModal
+        isOpen={showStoreCreate}
+        onClose={() => setShowStoreCreate(false)}
+        onSave={handleCreateStore}
+        title="Nueva Tienda"
+        placeholder="Ej: Mercadona"
+        iconSuggestions={STORE_ICONS}
       />
     </div>
   );
