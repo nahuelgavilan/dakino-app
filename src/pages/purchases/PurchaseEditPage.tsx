@@ -315,7 +315,7 @@ export const PurchaseEditPage = () => {
             <select
               value={formData.categoryId}
               onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
-              className="w-full px-4 py-4 border-2 border-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 rounded-2xl focus:border-primary-500 focus:outline-none text-lg font-medium transition-colors"
+              className="w-full px-4 py-4 border-2 border-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 rounded-2xl focus:border-primary-500 focus:outline-none text-lg font-medium transition-colors appearance-none cursor-pointer"
               required
             >
               <option value="">Selecciona una categoría</option>
@@ -335,7 +335,7 @@ export const PurchaseEditPage = () => {
             <select
               value={formData.storeId}
               onChange={(e) => setFormData(prev => ({ ...prev, storeId: e.target.value }))}
-              className="w-full px-4 py-4 border-2 border-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 rounded-2xl focus:border-primary-500 focus:outline-none text-lg font-medium transition-colors"
+              className="w-full px-4 py-4 border-2 border-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 rounded-2xl focus:border-primary-500 focus:outline-none text-lg font-medium transition-colors appearance-none cursor-pointer"
               required
             >
               <option value="">Selecciona una tienda</option>
