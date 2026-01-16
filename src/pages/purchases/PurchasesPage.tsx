@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { purchaseService } from '@/services/purchase.service';
 import { categoryService } from '@/services/category.service';
+import { tagService } from '@/services/tag.service';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/hooks/useToast';
-import type { Purchase, Category } from '@/types/models';
+import type { Purchase, Category, Tag } from '@/types/models';
 import { Spinner } from '@/components/common/Spinner';
 import { TagBadge } from '@/components/tags/TagBadge';
-import { Plus, Search, Filter, Calendar, DollarSign, Download } from 'lucide-react';
+import { Plus, Search, Filter, Calendar, DollarSign, Download, X } from 'lucide-react';
 import { formatDistance } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { exportToCSV, exportToJSON } from '@/utils/export';
@@ -19,8 +20,12 @@ export const PurchasesPage = () => {
   const [loading, setLoading] = useState(true);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
 
@@ -33,12 +38,14 @@ export const PurchasesPage = () => {
 
     try {
       setLoading(true);
-      const [purchasesData, categoriesData] = await Promise.all([
+      const [purchasesData, categoriesData, tagsData] = await Promise.all([
         purchaseService.getAllPurchases(user.id),
         categoryService.getCategories(),
+        tagService.getTags(user.id),
       ]);
       setPurchases(purchasesData);
       setCategories(categoriesData);
+      setTags(tagsData);
     } catch (error) {
       console.error('Error loading purchases:', error);
     } finally {
@@ -47,12 +54,38 @@ export const PurchasesPage = () => {
   };
 
   const filteredPurchases = purchases.filter((purchase) => {
+    // Search filter
     const matchesSearch = purchase.product_name
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
+
+    // Category filter (multiple)
     const matchesCategory =
-      !selectedCategory || purchase.category_id === selectedCategory;
-    return matchesSearch && matchesCategory;
+      selectedCategories.length === 0 ||
+      (purchase.category_id && selectedCategories.includes(purchase.category_id));
+
+    // Tags filter (multiple) - purchase must have ALL selected tags
+    const matchesTags =
+      selectedTags.length === 0 ||
+      (purchase.tags &&
+        selectedTags.every((tagId) =>
+          purchase.tags!.some((pt) => pt.tag_id === tagId)
+        ));
+
+    // Date range filter
+    const purchaseDate = new Date(purchase.purchase_date);
+    const matchesStartDate =
+      !startDate || purchaseDate >= new Date(startDate);
+    const matchesEndDate =
+      !endDate || purchaseDate <= new Date(endDate);
+
+    return (
+      matchesSearch &&
+      matchesCategory &&
+      matchesTags &&
+      matchesStartDate &&
+      matchesEndDate
+    );
   });
 
   const totalSpent = filteredPurchases.reduce(
@@ -65,9 +98,7 @@ export const PurchasesPage = () => {
       return;
     }
 
-    const filename = selectedCategory
-      ? `dakino-compras-${categories.find((c) => c.id === selectedCategory)?.name}`
-      : 'dakino-compras';
+    const filename = 'dakino-compras';
 
     if (format === 'csv') {
       exportToCSV(filteredPurchases, filename);
@@ -78,6 +109,37 @@ export const PurchasesPage = () => {
     success(`Datos exportados en formato ${format.toUpperCase()}`);
     setShowExportMenu(false);
   };
+
+  const toggleCategory = (categoryId: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(categoryId)
+        ? prev.filter((id) => id !== categoryId)
+        : [...prev, categoryId]
+    );
+  };
+
+  const toggleTag = (tagId: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tagId)
+        ? prev.filter((id) => id !== tagId)
+        : [...prev, tagId]
+    );
+  };
+
+  const clearAllFilters = () => {
+    setSelectedCategories([]);
+    setSelectedTags([]);
+    setStartDate('');
+    setEndDate('');
+    setSearchQuery('');
+  };
+
+  const hasActiveFilters =
+    selectedCategories.length > 0 ||
+    selectedTags.length > 0 ||
+    startDate ||
+    endDate ||
+    searchQuery;
 
   const categoryColors: Record<string, string> = {
     'Alimentos': 'from-green-400 to-emerald-500',
@@ -171,37 +233,138 @@ export const PurchasesPage = () => {
             </button>
           </div>
 
-          {/* Filters */}
+          {/* Advanced Filters */}
           {showFilters && (
-            <div className="mt-4 bg-white rounded-2xl p-4 shadow-lg">
-              <p className="text-sm font-bold text-neutral-700 mb-3">
-                Filtrar por categoría
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setSelectedCategory(null)}
-                  className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                    !selectedCategory
-                      ? 'bg-primary-500 text-white shadow-md'
-                      : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                  }`}
-                >
-                  Todas
-                </button>
-                {categories.map((category) => (
-                  <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                      selectedCategory === category.id
-                        ? 'bg-primary-500 text-white shadow-md'
-                        : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                    }`}
-                  >
-                    {category.icon} {category.name}
-                  </button>
-                ))}
+            <div className="mt-4 bg-white rounded-2xl p-5 shadow-lg space-y-5">
+              {/* Date Range */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-bold text-neutral-700">
+                    Rango de fechas
+                  </p>
+                  {(startDate || endDate) && (
+                    <button
+                      onClick={() => {
+                        setStartDate('');
+                        setEndDate('');
+                      }}
+                      className="text-xs text-primary-500 hover:text-primary-600 font-semibold"
+                    >
+                      Limpiar
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-neutral-600 mb-1">
+                      Desde
+                    </label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="w-full px-3 py-2 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-neutral-600 mb-1">
+                      Hasta
+                    </label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="w-full px-3 py-2 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none text-sm"
+                    />
+                  </div>
+                </div>
               </div>
+
+              {/* Categories */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-bold text-neutral-700">
+                    Categorías ({selectedCategories.length})
+                  </p>
+                  {selectedCategories.length > 0 && (
+                    <button
+                      onClick={() => setSelectedCategories([])}
+                      className="text-xs text-primary-500 hover:text-primary-600 font-semibold"
+                    >
+                      Limpiar
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {categories.map((category) => (
+                    <button
+                      key={category.id}
+                      onClick={() => toggleCategory(category.id)}
+                      className={`px-4 py-2 rounded-xl font-medium transition-all ${
+                        selectedCategories.includes(category.id)
+                          ? 'bg-primary-500 text-white shadow-md'
+                          : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                      }`}
+                    >
+                      {category.icon} {category.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tags */}
+              {tags.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-bold text-neutral-700">
+                      Etiquetas ({selectedTags.length})
+                    </p>
+                    {selectedTags.length > 0 && (
+                      <button
+                        onClick={() => setSelectedTags([])}
+                        className="text-xs text-primary-500 hover:text-primary-600 font-semibold"
+                      >
+                        Limpiar
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {tags.map((tag) => (
+                      <button
+                        key={tag.id}
+                        onClick={() => toggleTag(tag.id)}
+                        className={`px-3 py-1.5 rounded-full font-bold text-sm transition-all ${
+                          selectedTags.includes(tag.id)
+                            ? 'scale-105 shadow-md'
+                            : 'opacity-70 hover:opacity-100'
+                        }`}
+                        style={{
+                          backgroundColor: selectedTags.includes(tag.id)
+                            ? tag.color
+                            : tag.color + '20',
+                          color: selectedTags.includes(tag.id)
+                            ? 'white'
+                            : tag.color,
+                          border: `2px solid ${tag.color}`,
+                        }}
+                      >
+                        {tag.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Clear All Button */}
+              {hasActiveFilters && (
+                <button
+                  onClick={clearAllFilters}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-neutral-100 text-neutral-700 font-bold rounded-xl hover:bg-neutral-200 transition-colors"
+                >
+                  <X size={18} />
+                  Limpiar todos los filtros
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -214,7 +377,7 @@ export const PurchasesPage = () => {
           <p className="text-5xl font-black">${totalSpent.toFixed(2)}</p>
           <p className="text-sm opacity-80 mt-2">
             {filteredPurchases.length} {filteredPurchases.length === 1 ? 'compra' : 'compras'}
-            {selectedCategory && ' en esta categoría'}
+            {hasActiveFilters && ' con filtros aplicados'}
           </p>
         </div>
 
@@ -227,7 +390,7 @@ export const PurchasesPage = () => {
                 No hay compras
               </p>
               <p className="text-neutral-400">
-                {searchQuery || selectedCategory
+                {hasActiveFilters
                   ? 'Intenta con otros filtros'
                   : 'Agrega tu primera compra para comenzar'}
               </p>
