@@ -83,7 +83,23 @@ export const StoreManagementPage = () => {
       loadStores();
     } catch (err: any) {
       console.error('Error saving store:', err);
-      showError(err.message || 'Error al guardar tienda');
+
+      // Manejo de errores específicos
+      let errorMessage = 'Error al guardar tienda';
+
+      if (err.message) {
+        if (err.message.includes('duplicate key') || err.message.includes('unique constraint')) {
+          errorMessage = 'Ya existe una tienda con ese nombre';
+        } else if (err.message.includes('permission denied') || err.message.includes('policy')) {
+          errorMessage = 'Error de permisos. Verifica tu sesión';
+        } else if (err.message.includes('relation') || err.message.includes('does not exist')) {
+          errorMessage = 'Error de base de datos. Ejecuta la migración de tiendas';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+
+      showError(errorMessage);
     }
   };
 
