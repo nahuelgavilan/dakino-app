@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/common/Input';
 import { Button } from '@/components/common/Button';
+import { Select } from '@/components/common/Select';
 import { TagPicker } from '@/components/tags/TagPicker';
 import { purchaseService } from '@/services/purchase.service';
 import { productService } from '@/services/product.service';
@@ -12,7 +13,7 @@ import { storeService } from '@/services/store.service';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/hooks/useToast';
 import type { Product, Category, Tag, Store } from '@/types/models';
-import { Package, Scale, Calendar, DollarSign, X, Search } from 'lucide-react';
+import { Package, Scale, Calendar, DollarSign, X, Search, Tag as TagIcon, Store as StoreIcon } from 'lucide-react';
 
 export const PurchaseForm = () => {
   const navigate = useNavigate();
@@ -239,44 +240,36 @@ export const PurchaseForm = () => {
           </div>
 
           {/* Category */}
-          <div>
-            <label className="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-2">
-              Categoría
-            </label>
-            <select
-              value={formData.categoryId}
-              onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
-              className="w-full px-4 py-4 border-2 border-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 rounded-2xl focus:border-primary-500 focus:outline-none text-lg font-medium transition-colors appearance-none cursor-pointer"
-              required
-            >
-              <option value="">Selecciona una categoría</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.icon} {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            label="Categoría"
+            icon={<TagIcon size={20} />}
+            value={formData.categoryId}
+            onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
+            required
+          >
+            <option value="">Selecciona una categoría</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.icon} {category.name}
+              </option>
+            ))}
+          </Select>
 
           {/* Store */}
-          <div>
-            <label className="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-2">
-              Tienda / Supermercado
-            </label>
-            <select
-              value={formData.storeId}
-              onChange={(e) => setFormData(prev => ({ ...prev, storeId: e.target.value }))}
-              className="w-full px-4 py-4 border-2 border-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 rounded-2xl focus:border-primary-500 focus:outline-none text-lg font-medium transition-colors appearance-none cursor-pointer"
-              required
-            >
-              <option value="">Selecciona una tienda</option>
-              {stores.map((store) => (
-                <option key={store.id} value={store.id}>
-                  {store.icon} {store.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Select
+            label="Tienda / Supermercado"
+            icon={<StoreIcon size={20} />}
+            value={formData.storeId}
+            onChange={(e) => setFormData(prev => ({ ...prev, storeId: e.target.value }))}
+            required
+          >
+            <option value="">Selecciona una tienda</option>
+            {stores.map((store) => (
+              <option key={store.id} value={store.id}>
+                {store.icon} {store.name}
+              </option>
+            ))}
+          </Select>
 
           {/* Quantity and Price */}
           <div className="grid grid-cols-2 gap-4">
