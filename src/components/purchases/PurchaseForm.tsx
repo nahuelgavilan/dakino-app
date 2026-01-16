@@ -58,13 +58,14 @@ export const PurchaseForm = () => {
     if (!user) return;
     try {
       const [categoriesData, storesData] = await Promise.all([
-        categoryService.getCategories(),
+        categoryService.getCategories(user.id),
         storeService.getStores(user.id),
       ]);
       setCategories(categoriesData);
       setStores(storesData);
     } catch (err) {
       console.error('Error loading data:', err);
+      showError('Error al cargar categorías y tiendas');
     }
   };
 

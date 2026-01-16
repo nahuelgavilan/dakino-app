@@ -11,6 +11,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
+  -- 1. Crear perfil del usuario
   INSERT INTO public.profiles (id, email, full_name, created_at, updated_at)
   VALUES (
     NEW.id,
@@ -19,6 +20,13 @@ BEGIN
     NOW(),
     NOW()
   );
+
+  -- 2. Crear categorías por defecto
+  PERFORM create_default_categories(NEW.id);
+
+  -- 3. Crear tiendas/supermercados por defecto
+  PERFORM create_default_stores(NEW.id);
+
   RETURN NEW;
 END;
 $$;

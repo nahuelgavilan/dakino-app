@@ -62,7 +62,7 @@ export const PurchaseEditPage = () => {
       setLoading(true);
       const [purchase, categoriesData, storesData] = await Promise.all([
         purchaseService.getPurchaseById(id),
-        categoryService.getCategories(),
+        categoryService.getCategories(user.id),
         storeService.getStores(user.id),
       ]);
 
