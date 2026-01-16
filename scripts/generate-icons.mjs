@@ -25,10 +25,11 @@ async function generateIcons() {
     const outputPath = path.join(publicDir, name);
 
     try {
+      // Use transparent background for all icons
       await sharp(logoPath)
         .resize(size, size, {
           fit: 'contain',
-          background: { r: 255, g: 255, b: 255, alpha: 0 }
+          background: { r: 0, g: 0, b: 0, alpha: 0 } // Transparent
         })
         .png()
         .toFile(outputPath);
