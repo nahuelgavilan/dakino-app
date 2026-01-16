@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Modal } from '@/components/common/Modal';
 import { ImageUpload } from '@/components/common/ImageUpload';
+import { QuickCreateModal } from '@/components/common/QuickCreateModal';
 import { productService } from '@/services/product.service';
 import { categoryService } from '@/services/category.service';
 import { storeService } from '@/services/store.service';
 import { useAuthStore } from '@/store/authStore';
+import { useToast } from '@/hooks/useToast';
 import type { Product, Category, Store, ProductInsert } from '@/types/models';
-import { Package, DollarSign } from 'lucide-react';
+import { Package, DollarSign, Plus } from 'lucide-react';
+
+const CATEGORY_ICONS = ['🍎', '🥕', '🥖', '🥛', '🍖', '🐟', '🧀', '🍫', '🥤', '🧴', '🧼', '🏠'];
+const STORE_ICONS = ['🏪', '🛒', '🏬', '🏪', '🛍️', '🏢', '🏭', '🏛️', '🏦', '🏨', '🏩', '🏫'];
 
 interface ProductFormModalProps {
   isOpen: boolean;
@@ -17,10 +22,13 @@ interface ProductFormModalProps {
 
 export const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: ProductFormModalProps) => {
   const { user } = useAuthStore();
+  const { success: showSuccess, error: showError } = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [showCategoryCreate, setShowCategoryCreate] = useState(false);
+  const [showStoreCreate, setShowStoreCreate] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     category_id: '',
@@ -75,6 +83,46 @@ export const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: Produc
       setStores(data);
     } catch (error) {
       console.error('Error loading stores:', error);
+    }
+  };
+
+  const handleCreateCategory = async (name: string, icon: string) => {
+    if (!user) return;
+    try {
+      const newCategory = await categoryService.createCategory({
+        user_id: user.id,
+        name,
+        icon,
+        color: '#3B82F6',
+        is_default: false,
+      });
+      await loadCategories();
+      setFormData(prev => ({ ...prev, category_id: newCategory.id }));
+      showSuccess(`Categoría "${name}" creada`);
+    } catch (error) {
+      console.error('Error creating category:', error);
+      showError('Error al crear la categoría');
+      throw error;
+    }
+  };
+
+  const handleCreateStore = async (name: string, icon: string) => {
+    if (!user) return;
+    try {
+      const newStore = await storeService.createStore({
+        user_id: user.id,
+        name,
+        icon,
+        color: '#10B981',
+        is_favorite: false,
+      });
+      await loadStores();
+      setFormData(prev => ({ ...prev, store_id: newStore.id }));
+      showSuccess(`Tienda "${name}" creada`);
+    } catch (error) {
+      console.error('Error creating store:', error);
+      showError('Error al crear la tienda');
+      throw error;
     }
   };
 
@@ -168,42 +216,62 @@ export const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: Produc
           </div>
         </div>
 
-        {/* Category Selector */}
+        {/* Category Selector with Quick Create */}
         <div>
           <label className="block text-sm font-bold text-neutral-700 mb-2">
             Categoría
           </label>
-          <select
-            value={formData.category_id}
-            onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-            className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors"
-          >
-            <option value="">Seleccionar categoría...</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.icon} {cat.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex gap-2">
+            <select
+              value={formData.category_id}
+              onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+              className="flex-1 px-4 py-3 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors"
+            >
+              <option value="">Seleccionar categoría...</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.icon} {cat.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setShowCategoryCreate(true)}
+              className="px-4 py-3 bg-primary-100 text-primary-600 rounded-xl hover:bg-primary-200 transition-colors"
+              title="Crear nueva categoría"
+            >
+              <Plus size={20} />
+            </button>
+          </div>
         </div>
 
-        {/* Store Selector */}
+        {/* Store Selector with Quick Create */}
         <div>
           <label className="block text-sm font-bold text-neutral-700 mb-2">
             Tienda (opcional)
           </label>
-          <select
-            value={formData.store_id}
-            onChange={(e) => setFormData({ ...formData, store_id: e.target.value })}
-            className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors"
-          >
-            <option value="">Sin tienda específica...</option>
-            {stores.map((store) => (
-              <option key={store.id} value={store.id}>
-                {store.icon} {store.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex gap-2">
+            <select
+              value={formData.store_id}
+              onChange={(e) => setFormData({ ...formData, store_id: e.target.value })}
+              className="flex-1 px-4 py-3 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors"
+            >
+              <option value="">Sin tienda específica...</option>
+              {stores.map((store) => (
+                <option key={store.id} value={store.id}>
+                  {store.icon} {store.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setShowStoreCreate(true)}
+              className="px-4 py-3 bg-secondary-100 text-secondary-600 rounded-xl hover:bg-secondary-200 transition-colors"
+              title="Crear nueva tienda"
+            >
+              <Plus size={20} />
+            </button>
+          </div>
           <p className="text-xs text-neutral-500 mt-1">
             Asocia el producto a una tienda específica
           </p>
@@ -276,6 +344,25 @@ export const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: Produc
           </button>
         </div>
       </form>
+
+      {/* Quick Create Modals */}
+      <QuickCreateModal
+        isOpen={showCategoryCreate}
+        onClose={() => setShowCategoryCreate(false)}
+        onSave={handleCreateCategory}
+        title="Nueva Categoría"
+        placeholder="Ej: Lácteos"
+        iconSuggestions={CATEGORY_ICONS}
+      />
+
+      <QuickCreateModal
+        isOpen={showStoreCreate}
+        onClose={() => setShowStoreCreate(false)}
+        onSave={handleCreateStore}
+        title="Nueva Tienda"
+        placeholder="Ej: Mercadona"
+        iconSuggestions={STORE_ICONS}
+      />
     </Modal>
   );
 };
