@@ -1,105 +1,149 @@
-# Cómo Ejecutar Migración en Producción
+# 🚀 Ejecutar Schema Completo en Producción
 
-## Pasos para ejecutar en Supabase Dashboard
+## ⚠️ IMPORTANTE: Usar el archivo correcto
 
-### 1. Abre tu Supabase Dashboard
-Ve a: https://app.supabase.com
+**Usa el archivo:** `database/FULL-SCHEMA-PRODUCTION.sql`
 
-### 2. Selecciona tu proyecto de Dakino
+Este archivo contiene **TODO** el schema completo:
+- ✅ Todas las tablas (profiles, categories, stores, tags, products, purchases, bundles, etc.)
+- ✅ Todos los índices
+- ✅ Todas las funciones y triggers
+- ✅ Todas las políticas RLS
+- ✅ Datos por defecto para usuarios existentes
+- ✅ Es IDEMPOTENTE (seguro ejecutar múltiples veces)
+
+## 📋 Pasos Simples
+
+### 1. Abre Supabase Dashboard
+https://app.supabase.com
+
+### 2. Selecciona tu proyecto Dakino
 
 ### 3. Ve al SQL Editor
-En el menú lateral izquierdo, click en **"SQL Editor"**
+Menú lateral izquierdo → **"SQL Editor"**
 
 ### 4. Nueva Query
 Click en **"New query"**
 
-### 5. Copia el contenido del archivo
-Abre el archivo: `database/MIGRATION-PRODUCCION.sql`
-
+### 5. Copia TODO el archivo
+Abre: `database/FULL-SCHEMA-PRODUCTION.sql`
 Copia **TODO** el contenido (desde `BEGIN;` hasta el final)
 
-### 6. Pega en el SQL Editor
-Pega todo el contenido en el editor de Supabase
+### 6. Pega en el editor
 
 ### 7. Ejecuta
-Click en el botón **"Run"** (verde, esquina inferior derecha)
+Click en **"Run"** (botón verde)
 
-### 8. Verifica el resultado
-Deberías ver al final una tabla como esta:
-
+### 8. Espera a que termine
+Verás mensajes de NOTICE indicando el progreso:
 ```
-           email           | categorias | tiendas
----------------------------+------------+---------
- usuario1@ejemplo.com      |          8 |       8
- usuario2@ejemplo.com      |          8 |       8
+NOTICE: Categorías creadas para: tu@email.com
+NOTICE: Tiendas creadas para: tu@email.com
 ```
 
-Cada usuario debe tener **8 categorías** y **8 tiendas**.
+### 9. Verifica el resultado final
+Al final debe mostrar una tabla como esta:
 
-## ¿Qué hace esta migración?
+```
+           email           | categorias | tiendas | productos | compras
+---------------------------+------------+---------+-----------+---------
+ usuario@ejemplo.com       |          8 |       8 |         0 |       0
+```
 
-✅ Agrega constraint UNIQUE a categorías (evita duplicados)
-✅ Crea función `create_default_categories()`
-✅ Crea función `create_default_stores()`
-✅ Actualiza el trigger de autenticación para crear categorías/tiendas automáticamente
-✅ Crea 8 categorías para TODOS los usuarios existentes
-✅ Crea 8 tiendas para TODOS los usuarios existentes
+✅ **Cada usuario DEBE tener 8 categorías y 8 tiendas**
 
-## Categorías creadas:
-- 🍎 Alimentos
-- 🧹 Limpieza
-- 💊 Salud
-- 🏠 Hogar
-- 👕 Ropa
-- 🎮 Entretenimiento
-- 🚗 Transporte
-- 📱 Tecnología
+## ✨ ¿Qué crea este script?
 
-## Tiendas creadas:
-- 🛒 Mercadona
-- 🏪 Carrefour
-- 🏬 Lidl
-- 🏭 Aldi
-- 🏢 El Corte Inglés
-- 🛍️ Día
-- 🏪 Eroski
-- 🏬 Alcampo
+### Tablas:
+- profiles
+- categories
+- stores
+- tags
+- products
+- purchases
+- purchase_tags
+- bundles
+- bundle_items
 
-## Seguridad
-✅ La migración es segura de ejecutar múltiples veces
-✅ Usa `ON CONFLICT DO NOTHING` para evitar duplicados
-✅ Solo crea categorías/tiendas si el usuario no tiene ninguna
+### Funciones:
+- `create_default_categories()` - Crea 8 categorías por usuario
+- `create_default_stores()` - Crea 8 tiendas por usuario
+- `handle_new_user()` - Trigger para nuevos registros
+- Funciones de updated_at y product_usage
+
+### 8 Categorías por defecto:
+🍎 Alimentos • 🧹 Limpieza • 💊 Salud • 🏠 Hogar
+👕 Ropa • 🎮 Entretenimiento • 🚗 Transporte • 📱 Tecnología
+
+### 8 Tiendas por defecto:
+🛒 Mercadona • 🏪 Carrefour • 🏬 Lidl • 🏭 Aldi
+🏢 El Corte Inglés • 🛍️ Día • 🏪 Eroski • 🏬 Alcampo
+
+## 🔒 Seguridad
+
+✅ Seguro ejecutar múltiples veces (idempotente)
+✅ Usa `CREATE IF NOT EXISTS` y `DROP IF EXISTS`
+✅ Usa `ON CONFLICT DO NOTHING` para datos
 ✅ No modifica ni elimina datos existentes
+✅ Solo crea lo que falta
 
-## Después de ejecutar
+## ✅ Después de ejecutar
 
-1. **Recarga tu app en producción**
-2. **Verifica que los selectores muestran las opciones**
-3. **Los nuevos usuarios recibirán automáticamente las 8 categorías + 8 tiendas**
+1. **Recarga tu app en producción** (Cmd+R / Ctrl+R)
+2. **Verifica que los selectores tienen opciones**
+3. **Nuevos usuarios recibirán automáticamente todo**
+4. **Puedes crear más categorías/tiendas desde la app**
 
-## Solución de Problemas
+## 🔧 Solución de Problemas
 
-### Error: "relation does not exist"
-**Problema**: Faltan tablas (categories o stores)
-**Solución**: Ejecuta primero `database/schema.sql` completo
+### ❌ Error: "permission denied for schema public"
+**Causa**: Ejecutando con usuario sin permisos
+**Solución**: Asegúrate de ejecutar en Supabase Dashboard (no psql directo)
 
-### Error: "function does not exist"
-**Problema**: La función no se creó correctamente
-**Solución**: Verifica que el script se ejecutó completo (incluyendo la sección de funciones)
+### ❌ Error: "syntax error at or near..."
+**Causa**: No copiaste el archivo completo
+**Solución**: Asegúrate de copiar desde `BEGIN;` hasta el final
 
-### Error: "permission denied"
-**Problema**: Permisos insuficientes
-**Solución**: Asegúrate de estar ejecutando como usuario con permisos de admin
+### ❌ No veo categorías/tiendas en la app
+**Verifica:**
+1. La query final mostró 8 categorías y 8 tiendas
+2. Has recargado la app (Cmd+R)
+3. Las variables de entorno apuntan a producción
+4. La tabla `profiles` tiene tu usuario
 
-### No veo las categorías/tiendas en la app
-1. Verifica que la consulta final muestra 8 categorías y 8 tiendas
-2. Recarga la app (Cmd+R / Ctrl+R)
-3. Cierra sesión y vuelve a iniciar sesión
-4. Verifica que las variables de entorno apuntan a producción
+### ❌ Algunos triggers fallan
+**Causa**: Ya existen triggers antiguos
+**Solución**: El script hace `DROP IF EXISTS`, debería funcionar. Si persiste:
+```sql
+-- Ejecuta esto primero
+DROP TRIGGER IF EXISTS trigger_stores_updated_at ON stores;
+DROP TRIGGER IF EXISTS trigger_create_default_stores ON profiles;
+-- Luego ejecuta el script completo
+```
 
----
+## 📝 Notas
 
-Si encuentras algún problema, revisa los mensajes de NOTICE en el resultado de la query.
-Deberían aparecer mensajes como:
-- `NOTICE: Categorías creadas para: usuario@email.com`
-- `NOTICE: Tiendas creadas para: usuario@email.com`
+- Este script reemplaza TODOS los archivos individuales (00-init-roles.sql, 01-categories-defaults.sql, etc.)
+- Solo necesitas ejecutar este archivo UNA vez
+- Es seguro ejecutarlo de nuevo si tienes dudas
+- Incluye migraciones incrementales (agrega columnas si faltan)
+
+## 🆘 ¿Sigue sin funcionar?
+
+1. Abre la consola del navegador (F12)
+2. Ve a Network tab
+3. Recarga la app
+4. Busca errores en las llamadas a `/rest/v1/categories` o `/rest/v1/stores`
+5. Copia el error exacto
+
+O ejecuta esto en SQL Editor para debug:
+```sql
+-- Ver usuarios
+SELECT * FROM profiles;
+
+-- Ver categorías por usuario
+SELECT user_id, COUNT(*) FROM categories GROUP BY user_id;
+
+-- Ver tiendas por usuario
+SELECT user_id, COUNT(*) FROM stores GROUP BY user_id;
+```
