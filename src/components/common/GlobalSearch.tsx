@@ -85,16 +85,16 @@ export const GlobalSearch = ({ isOpen, onClose }: GlobalSearchProps) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] bg-black/60 dark:bg-black/80 backdrop-blur-sm">
       <div className="w-full max-w-2xl mx-4">
         {/* Search Box */}
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
+        <div className="bg-white dark:bg-neutral-800 rounded-3xl shadow-2xl overflow-hidden transition-colors duration-200">
           {/* Input */}
-          <div className="flex items-center gap-3 px-6 py-5 border-b border-neutral-200">
+          <div className="flex items-center gap-3 px-6 py-5 border-b border-neutral-200 dark:border-neutral-700">
             {loading ? (
-              <Loader2 size={24} className="text-primary-500 animate-spin" />
+              <Loader2 size={24} className="text-primary-500 dark:text-primary-400 animate-spin" />
             ) : (
-              <Search size={24} className="text-neutral-400" />
+              <Search size={24} className="text-neutral-400 dark:text-neutral-500" />
             )}
             <input
               ref={inputRef}
@@ -103,13 +103,13 @@ export const GlobalSearch = ({ isOpen, onClose }: GlobalSearchProps) => {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Buscar compras, productos, listas..."
-              className="flex-1 text-lg font-medium outline-none placeholder:text-neutral-400"
+              className="flex-1 text-lg font-medium outline-none placeholder:text-neutral-400 dark:placeholder:text-neutral-500 bg-transparent text-neutral-900 dark:text-neutral-100"
             />
             <button
               onClick={onClose}
-              className="p-2 hover:bg-neutral-100 rounded-xl transition-colors"
+              className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-xl transition-colors"
             >
-              <X size={20} className="text-neutral-500" />
+              <X size={20} className="text-neutral-500 dark:text-neutral-400" />
             </button>
           </div>
 
@@ -117,26 +117,26 @@ export const GlobalSearch = ({ isOpen, onClose }: GlobalSearchProps) => {
           <div className="max-h-[60vh] overflow-y-auto">
             {query.length < 2 ? (
               <div className="px-6 py-12 text-center">
-                <Search size={48} className="mx-auto mb-4 text-neutral-300" />
-                <p className="text-neutral-500 font-medium">
+                <Search size={48} className="mx-auto mb-4 text-neutral-300 dark:text-neutral-600" />
+                <p className="text-neutral-500 dark:text-neutral-400 font-medium">
                   Escribe al menos 2 caracteres para buscar
                 </p>
-                <p className="text-sm text-neutral-400 mt-2">
+                <p className="text-sm text-neutral-400 dark:text-neutral-500 mt-2">
                   Busca en compras, productos y listas
                 </p>
               </div>
             ) : loading ? (
               <div className="px-6 py-12 text-center">
-                <Loader2 size={48} className="mx-auto mb-4 text-primary-500 animate-spin" />
-                <p className="text-neutral-500 font-medium">Buscando...</p>
+                <Loader2 size={48} className="mx-auto mb-4 text-primary-500 dark:text-primary-400 animate-spin" />
+                <p className="text-neutral-500 dark:text-neutral-400 font-medium">Buscando...</p>
               </div>
             ) : results.length === 0 ? (
               <div className="px-6 py-12 text-center">
                 <div className="text-6xl mb-4">🔍</div>
-                <p className="text-neutral-600 font-bold text-lg mb-2">
+                <p className="text-neutral-600 dark:text-neutral-300 font-bold text-lg mb-2">
                   No se encontraron resultados
                 </p>
-                <p className="text-neutral-400">
+                <p className="text-neutral-400 dark:text-neutral-500">
                   Intenta con otros términos de búsqueda
                 </p>
               </div>
@@ -149,21 +149,21 @@ export const GlobalSearch = ({ isOpen, onClose }: GlobalSearchProps) => {
                     onMouseEnter={() => setSelectedIndex(index)}
                     className={`w-full px-6 py-4 flex items-center gap-4 transition-all ${
                       index === selectedIndex
-                        ? 'bg-primary-50 border-l-4 border-primary-500'
-                        : 'hover:bg-neutral-50 border-l-4 border-transparent'
+                        ? 'bg-primary-50 dark:bg-primary-900/20 border-l-4 border-primary-500 dark:border-primary-400'
+                        : 'hover:bg-neutral-50 dark:hover:bg-neutral-700/50 border-l-4 border-transparent'
                     }`}
                   >
                     <span className="text-3xl">{result.icon}</span>
                     <div className="flex-1 text-left">
-                      <p className="font-bold text-neutral-900 mb-1">
+                      <p className="font-bold text-neutral-900 dark:text-neutral-100 mb-1">
                         {result.title}
                       </p>
-                      <p className="text-sm text-neutral-500">
+                      <p className="text-sm text-neutral-500 dark:text-neutral-400">
                         {result.subtitle}
                       </p>
                     </div>
                     {index === selectedIndex && (
-                      <kbd className="px-2 py-1 bg-neutral-200 rounded text-xs font-mono">
+                      <kbd className="px-2 py-1 bg-neutral-200 dark:bg-neutral-700 dark:text-neutral-300 rounded text-xs font-mono">
                         ↵
                       </kbd>
                     )}
@@ -175,23 +175,23 @@ export const GlobalSearch = ({ isOpen, onClose }: GlobalSearchProps) => {
 
           {/* Footer hint */}
           {results.length > 0 && (
-            <div className="px-6 py-3 bg-neutral-50 border-t border-neutral-200 flex items-center justify-between text-xs text-neutral-500">
+            <div className="px-6 py-3 bg-neutral-50 dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-700 flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400">
               <div className="flex items-center gap-4">
                 <span className="flex items-center gap-1">
-                  <kbd className="px-2 py-1 bg-white rounded border border-neutral-300 font-mono">↑</kbd>
-                  <kbd className="px-2 py-1 bg-white rounded border border-neutral-300 font-mono">↓</kbd>
+                  <kbd className="px-2 py-1 bg-white dark:bg-neutral-800 rounded border border-neutral-300 dark:border-neutral-600 font-mono">↑</kbd>
+                  <kbd className="px-2 py-1 bg-white dark:bg-neutral-800 rounded border border-neutral-300 dark:border-neutral-600 font-mono">↓</kbd>
                   navegar
                 </span>
                 <span className="flex items-center gap-1">
-                  <kbd className="px-2 py-1 bg-white rounded border border-neutral-300 font-mono">↵</kbd>
+                  <kbd className="px-2 py-1 bg-white dark:bg-neutral-800 rounded border border-neutral-300 dark:border-neutral-600 font-mono">↵</kbd>
                   seleccionar
                 </span>
                 <span className="flex items-center gap-1">
-                  <kbd className="px-2 py-1 bg-white rounded border border-neutral-300 font-mono">esc</kbd>
+                  <kbd className="px-2 py-1 bg-white dark:bg-neutral-800 rounded border border-neutral-300 dark:border-neutral-600 font-mono">esc</kbd>
                   cerrar
                 </span>
               </div>
-              <span className="text-neutral-400">
+              <span className="text-neutral-400 dark:text-neutral-500">
                 {results.length} resultado{results.length !== 1 && 's'}
               </span>
             </div>

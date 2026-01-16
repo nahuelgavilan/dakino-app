@@ -37,7 +37,7 @@ const navItems = [
 
 export const BottomNav = () => {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-neutral-200/50 pb-safe">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-xl border-t border-neutral-200/50 dark:border-neutral-700/50 pb-safe transition-colors duration-200">
       <div className="max-w-7xl mx-auto px-2">
         <div className="flex items-center justify-around py-2">
           {navItems.map((item) => {
@@ -66,15 +66,15 @@ export const BottomNav = () => {
                     >
                       <Icon
                         size={24}
-                        className={isActive ? 'text-white' : 'text-neutral-600'}
+                        className={isActive ? 'text-white' : 'text-neutral-600 dark:text-neutral-400'}
                         strokeWidth={isActive ? 2.5 : 2}
                       />
                     </div>
                     <span
                       className={`text-xs font-bold transition-all duration-200 ${
                         isActive
-                          ? 'text-neutral-900'
-                          : 'text-neutral-500'
+                          ? 'text-neutral-900 dark:text-neutral-100'
+                          : 'text-neutral-500 dark:text-neutral-400'
                       }`}
                     >
                       {item.label}
