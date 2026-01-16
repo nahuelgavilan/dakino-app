@@ -16,10 +16,8 @@ export class AuthService {
 
     if (error) throw error;
 
-    // Crear perfil
-    if (data.user) {
-      await this.createProfile(data.user.id, email, fullName);
-    }
+    // El perfil, categorías y tiendas se crean automáticamente por el trigger handle_new_user
+    // No necesitamos crear el perfil manualmente aquí
 
     return data;
   }

@@ -34,8 +34,11 @@ export const SignupForm = () => {
 
     try {
       await signUp(email, password, fullName);
-      success('Cuenta creada correctamente. Revisa tu email para confirmar.');
-      navigate(ROUTES.APP.DASHBOARD);
+      success('¡Cuenta creada! Revisa tu email para confirmar tu cuenta y luego inicia sesión.');
+      // No redirigir al dashboard - dejar que confirmen email primero
+      setTimeout(() => {
+        navigate(ROUTES.AUTH.LOGIN);
+      }, 2000);
     } catch (err: any) {
       error(err.message || 'Error al crear la cuenta');
     } finally {
