@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { User, AuthError } from '@supabase/supabase-js';
+import type { User } from '@supabase/supabase-js';
 import type { Profile } from '@/types/models';
 
 export class AuthService {

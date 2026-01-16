@@ -40,7 +40,7 @@ export const PurchasesPage = () => {
       setLoading(true);
       const [purchasesData, categoriesData, tagsData] = await Promise.all([
         purchaseService.getAllPurchases(user.id),
-        categoryService.getCategories(),
+        categoryService.getCategories(user.id),
         tagService.getTags(user.id),
       ]);
       setPurchases(purchasesData);

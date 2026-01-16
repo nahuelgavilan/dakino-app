@@ -122,6 +122,7 @@ export class BundleService {
         product_id: item.product_id,
         product_name: item.product_name,
         category_id: item.category_id,
+        store_id: null,
         unit_type: item.unit_type,
         quantity: item.quantity,
         weight: item.weight,

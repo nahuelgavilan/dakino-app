@@ -8,13 +8,10 @@ import {
   Bar,
   PieChart,
   Pie,
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   Cell,
 } from 'recharts';
@@ -144,19 +141,19 @@ export const AnalyticsPage = () => {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) =>
-                      `${name} ${(percent * 100).toFixed(0)}%`
+                    label={(props: any) =>
+                      `${props.name} ${((props.percent || 0) * 100).toFixed(0)}%`
                     }
                     outerRadius={120}
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {pieData.map((entry, index) => (
+                    {pieData.map((_entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number) => `$${value.toFixed(2)}`}
+                    formatter={(value) => `$${(value as number).toFixed(2)}`}
                     contentStyle={{
                       backgroundColor: 'white',
                       border: '2px solid #f0f0f0',
@@ -192,7 +189,7 @@ export const AnalyticsPage = () => {
                     tickFormatter={(value) => `$${value}`}
                   />
                   <Tooltip
-                    formatter={(value: number) => `$${value.toFixed(2)}`}
+                    formatter={(value) => `$${(value as number).toFixed(2)}`}
                     contentStyle={{
                       backgroundColor: 'white',
                       border: '2px solid #f0f0f0',

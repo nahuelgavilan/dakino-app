@@ -85,7 +85,7 @@ export class TagService {
       .eq('purchase_id', purchaseId);
 
     if (error) throw error;
-    return data.map(item => item.tag).filter(Boolean) as Tag[];
+    return (data.map(item => item.tag).filter(Boolean) as unknown) as Tag[];
   }
 
   async setTagsForPurchase(purchaseId: string, tagIds: string[]): Promise<void> {

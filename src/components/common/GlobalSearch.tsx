@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { searchService } from '@/services/search.service';
 import { useAuthStore } from '@/store/authStore';
 import type { SearchResult } from '@/services/search.service';
-import { Search, X, TrendingUp, Loader2 } from 'lucide-react';
+import { Search, X, Loader2 } from 'lucide-react';
 
 interface GlobalSearchProps {
   isOpen: boolean;

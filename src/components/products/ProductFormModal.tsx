@@ -53,8 +53,9 @@ export const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: Produc
   }, [isOpen, product]);
 
   const loadCategories = async () => {
+    if (!user) return;
     try {
-      const data = await categoryService.getCategories();
+      const data = await categoryService.getCategories(user.id);
       setCategories(data);
     } catch (error) {
       console.error('Error loading categories:', error);
@@ -72,6 +73,7 @@ export const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: Produc
         user_id: user.id,
         name: formData.name,
         category_id: formData.category_id || null,
+        store_id: null,
         unit_type: formData.unit_type,
         default_price: formData.default_price ? parseFloat(formData.default_price) : null,
         default_unit: formData.default_unit || null,

@@ -12,7 +12,7 @@ import { tagService } from '@/services/tag.service';
 import { storeService } from '@/services/store.service';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/hooks/useToast';
-import type { Product, Category, Tag, Purchase, Store } from '@/types/models';
+import type { Product, Category, Tag, Store } from '@/types/models';
 import { Package, Scale, Calendar, DollarSign, X, Search, Loader2, Trash2, Tag as TagIcon, Store as StoreIcon } from 'lucide-react';
 
 export const PurchaseEditPage = () => {
@@ -28,7 +28,7 @@ export const PurchaseEditPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [, setSelectedProduct] = useState<Product | null>(null);
   const [showProductSuggestions, setShowProductSuggestions] = useState(false);
   const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, ShoppingBag } from 'lucide-react';
 import type { Purchase } from '@/types/models';
 
