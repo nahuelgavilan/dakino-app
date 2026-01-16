@@ -8,9 +8,10 @@ import { purchaseService } from '@/services/purchase.service';
 import { productService } from '@/services/product.service';
 import { categoryService } from '@/services/category.service';
 import { tagService } from '@/services/tag.service';
+import { storeService } from '@/services/store.service';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/hooks/useToast';
-import type { Product, Category, Tag, Purchase } from '@/types/models';
+import type { Product, Category, Tag, Purchase, Store } from '@/types/models';
 import { Package, Scale, Calendar, DollarSign, X, Search, Loader2, Trash2 } from 'lucide-react';
 
 export const PurchaseEditPage = () => {
@@ -25,6 +26,7 @@ export const PurchaseEditPage = () => {
   const [productSearch, setProductSearch] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showProductSuggestions, setShowProductSuggestions] = useState(false);
   const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
@@ -32,6 +34,7 @@ export const PurchaseEditPage = () => {
   const [formData, setFormData] = useState({
     productName: '',
     categoryId: '',
+    storeId: '',
     quantity: '',
     unitPrice: '',
     purchaseDate: new Date().toISOString().split('T')[0],
@@ -56,9 +59,10 @@ export const PurchaseEditPage = () => {
 
     try {
       setLoading(true);
-      const [purchase, categoriesData] = await Promise.all([
+      const [purchase, categoriesData, storesData] = await Promise.all([
         purchaseService.getPurchaseById(id),
         categoryService.getCategories(),
+        storeService.getStores(user.id),
       ]);
 
       if (!purchase) {
@@ -71,6 +75,7 @@ export const PurchaseEditPage = () => {
       const purchaseTags = await tagService.getPurchaseTags(id);
 
       setCategories(categoriesData);
+      setStores(storesData);
       setUnitType(purchase.unit_type);
       setProductSearch(purchase.product_name);
       setSelectedTags(purchaseTags);
@@ -78,6 +83,7 @@ export const PurchaseEditPage = () => {
       setFormData({
         productName: purchase.product_name,
         categoryId: purchase.category_id || '',
+        storeId: purchase.store_id || '',
         quantity: purchase.unit_type === 'unit'
           ? (purchase.quantity?.toString() || '')
           : (purchase.weight?.toString() || ''),
@@ -153,7 +159,7 @@ export const PurchaseEditPage = () => {
       return;
     }
 
-    if (!formData.productName || !formData.categoryId || !formData.quantity || !formData.unitPrice) {
+    if (!formData.productName || !formData.categoryId || !formData.storeId || !formData.quantity || !formData.unitPrice) {
       showError('Por favor completa todos los campos requeridos');
       return;
     }
@@ -164,6 +170,7 @@ export const PurchaseEditPage = () => {
       await purchaseService.updatePurchase(id, {
         product_name: formData.productName,
         category_id: formData.categoryId,
+        store_id: formData.storeId,
         unit_type: unitType,
         quantity: unitType === 'unit' ? parseInt(formData.quantity) : null,
         weight: unitType === 'weight' ? parseFloat(formData.quantity) : null,
@@ -315,6 +322,26 @@ export const PurchaseEditPage = () => {
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.icon} {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Store */}
+          <div>
+            <label className="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-2">
+              Tienda / Supermercado
+            </label>
+            <select
+              value={formData.storeId}
+              onChange={(e) => setFormData(prev => ({ ...prev, storeId: e.target.value }))}
+              className="w-full px-4 py-4 border-2 border-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 rounded-2xl focus:border-primary-500 focus:outline-none text-lg font-medium transition-colors"
+              required
+            >
+              <option value="">Selecciona una tienda</option>
+              {stores.map((store) => (
+                <option key={store.id} value={store.id}>
+                  {store.icon} {store.name}
                 </option>
               ))}
             </select>

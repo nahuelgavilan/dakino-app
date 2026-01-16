@@ -8,9 +8,10 @@ import { purchaseService } from '@/services/purchase.service';
 import { productService } from '@/services/product.service';
 import { categoryService } from '@/services/category.service';
 import { tagService } from '@/services/tag.service';
+import { storeService } from '@/services/store.service';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/hooks/useToast';
-import type { Product, Category, Tag } from '@/types/models';
+import type { Product, Category, Tag, Store } from '@/types/models';
 import { Package, Scale, Calendar, DollarSign, X, Search } from 'lucide-react';
 
 export const PurchaseForm = () => {
@@ -22,6 +23,7 @@ export const PurchaseForm = () => {
   const [productSearch, setProductSearch] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showProductSuggestions, setShowProductSuggestions] = useState(false);
   const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
@@ -29,6 +31,7 @@ export const PurchaseForm = () => {
   const [formData, setFormData] = useState({
     productName: '',
     categoryId: '',
+    storeId: '',
     quantity: '',
     unitPrice: '',
     purchaseDate: new Date().toISOString().split('T')[0],
@@ -38,7 +41,7 @@ export const PurchaseForm = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    loadCategories();
+    loadCategoriesAndStores();
   }, []);
 
   useEffect(() => {
@@ -50,12 +53,17 @@ export const PurchaseForm = () => {
     }
   }, [productSearch]);
 
-  const loadCategories = async () => {
+  const loadCategoriesAndStores = async () => {
+    if (!user) return;
     try {
-      const data = await categoryService.getCategories();
-      setCategories(data);
+      const [categoriesData, storesData] = await Promise.all([
+        categoryService.getCategories(),
+        storeService.getStores(user.id),
+      ]);
+      setCategories(categoriesData);
+      setStores(storesData);
     } catch (err) {
-      console.error('Error loading categories:', err);
+      console.error('Error loading data:', err);
     }
   };
 
@@ -98,7 +106,7 @@ export const PurchaseForm = () => {
       return;
     }
 
-    if (!formData.productName || !formData.categoryId || !formData.quantity || !formData.unitPrice) {
+    if (!formData.productName || !formData.categoryId || !formData.storeId || !formData.quantity || !formData.unitPrice) {
       showError('Por favor completa todos los campos requeridos');
       return;
     }
@@ -111,6 +119,7 @@ export const PurchaseForm = () => {
         product_id: selectedProduct?.id || null,
         product_name: formData.productName,
         category_id: formData.categoryId,
+        store_id: formData.storeId,
         unit_type: unitType,
         quantity: unitType === 'unit' ? parseInt(formData.quantity) : null,
         weight: unitType === 'weight' ? parseFloat(formData.quantity) : null,
@@ -244,6 +253,26 @@ export const PurchaseForm = () => {
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.icon} {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Store */}
+          <div>
+            <label className="block text-sm font-bold text-neutral-700 mb-2">
+              Tienda / Supermercado
+            </label>
+            <select
+              value={formData.storeId}
+              onChange={(e) => setFormData(prev => ({ ...prev, storeId: e.target.value }))}
+              className="w-full px-4 py-4 border-2 border-neutral-200 rounded-2xl focus:border-primary-500 focus:outline-none text-lg font-medium transition-colors"
+              required
+            >
+              <option value="">Selecciona una tienda</option>
+              {stores.map((store) => (
+                <option key={store.id} value={store.id}>
+                  {store.icon} {store.name}
                 </option>
               ))}
             </select>
