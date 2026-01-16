@@ -1,0 +1,203 @@
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { searchService } from '@/services/search.service';
+import { useAuthStore } from '@/store/authStore';
+import type { SearchResult } from '@/services/search.service';
+import { Search, X, TrendingUp, Loader2 } from 'lucide-react';
+
+interface GlobalSearchProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export const GlobalSearch = ({ isOpen, onClose }: GlobalSearchProps) => {
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setQuery('');
+      setResults([]);
+      setSelectedIndex(0);
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!query || query.length < 2) {
+      setResults([]);
+      return;
+    }
+
+    const searchTimeout = setTimeout(async () => {
+      if (!user) return;
+
+      setLoading(true);
+      try {
+        const searchResults = await searchService.globalSearch(user.id, query);
+        setResults(searchResults);
+        setSelectedIndex(0);
+      } catch (error) {
+        console.error('Search error:', error);
+      } finally {
+        setLoading(false);
+      }
+    }, 300); // Debounce 300ms
+
+    return () => clearTimeout(searchTimeout);
+  }, [query, user]);
+
+  const handleSelect = (result: SearchResult) => {
+    switch (result.type) {
+      case 'purchase':
+        navigate('/purchases');
+        break;
+      case 'product':
+        navigate('/products');
+        break;
+      case 'bundle':
+        navigate('/bundles');
+        break;
+    }
+    onClose();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev + 1) % results.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev - 1 + results.length) % results.length);
+    } else if (e.key === 'Enter' && results[selectedIndex]) {
+      e.preventDefault();
+      handleSelect(results[selectedIndex]);
+    } else if (e.key === 'Escape') {
+      onClose();
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] bg-black/60 backdrop-blur-sm">
+      <div className="w-full max-w-2xl mx-4">
+        {/* Search Box */}
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
+          {/* Input */}
+          <div className="flex items-center gap-3 px-6 py-5 border-b border-neutral-200">
+            {loading ? (
+              <Loader2 size={24} className="text-primary-500 animate-spin" />
+            ) : (
+              <Search size={24} className="text-neutral-400" />
+            )}
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Buscar compras, productos, listas..."
+              className="flex-1 text-lg font-medium outline-none placeholder:text-neutral-400"
+            />
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-neutral-100 rounded-xl transition-colors"
+            >
+              <X size={20} className="text-neutral-500" />
+            </button>
+          </div>
+
+          {/* Results */}
+          <div className="max-h-[60vh] overflow-y-auto">
+            {query.length < 2 ? (
+              <div className="px-6 py-12 text-center">
+                <Search size={48} className="mx-auto mb-4 text-neutral-300" />
+                <p className="text-neutral-500 font-medium">
+                  Escribe al menos 2 caracteres para buscar
+                </p>
+                <p className="text-sm text-neutral-400 mt-2">
+                  Busca en compras, productos y listas
+                </p>
+              </div>
+            ) : loading ? (
+              <div className="px-6 py-12 text-center">
+                <Loader2 size={48} className="mx-auto mb-4 text-primary-500 animate-spin" />
+                <p className="text-neutral-500 font-medium">Buscando...</p>
+              </div>
+            ) : results.length === 0 ? (
+              <div className="px-6 py-12 text-center">
+                <div className="text-6xl mb-4">🔍</div>
+                <p className="text-neutral-600 font-bold text-lg mb-2">
+                  No se encontraron resultados
+                </p>
+                <p className="text-neutral-400">
+                  Intenta con otros términos de búsqueda
+                </p>
+              </div>
+            ) : (
+              <div className="py-2">
+                {results.map((result, index) => (
+                  <button
+                    key={`${result.type}-${result.id}`}
+                    onClick={() => handleSelect(result)}
+                    onMouseEnter={() => setSelectedIndex(index)}
+                    className={`w-full px-6 py-4 flex items-center gap-4 transition-all ${
+                      index === selectedIndex
+                        ? 'bg-primary-50 border-l-4 border-primary-500'
+                        : 'hover:bg-neutral-50 border-l-4 border-transparent'
+                    }`}
+                  >
+                    <span className="text-3xl">{result.icon}</span>
+                    <div className="flex-1 text-left">
+                      <p className="font-bold text-neutral-900 mb-1">
+                        {result.title}
+                      </p>
+                      <p className="text-sm text-neutral-500">
+                        {result.subtitle}
+                      </p>
+                    </div>
+                    {index === selectedIndex && (
+                      <kbd className="px-2 py-1 bg-neutral-200 rounded text-xs font-mono">
+                        ↵
+                      </kbd>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Footer hint */}
+          {results.length > 0 && (
+            <div className="px-6 py-3 bg-neutral-50 border-t border-neutral-200 flex items-center justify-between text-xs text-neutral-500">
+              <div className="flex items-center gap-4">
+                <span className="flex items-center gap-1">
+                  <kbd className="px-2 py-1 bg-white rounded border border-neutral-300 font-mono">↑</kbd>
+                  <kbd className="px-2 py-1 bg-white rounded border border-neutral-300 font-mono">↓</kbd>
+                  navegar
+                </span>
+                <span className="flex items-center gap-1">
+                  <kbd className="px-2 py-1 bg-white rounded border border-neutral-300 font-mono">↵</kbd>
+                  seleccionar
+                </span>
+                <span className="flex items-center gap-1">
+                  <kbd className="px-2 py-1 bg-white rounded border border-neutral-300 font-mono">esc</kbd>
+                  cerrar
+                </span>
+              </div>
+              <span className="text-neutral-400">
+                {results.length} resultado{results.length !== 1 && 's'}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
