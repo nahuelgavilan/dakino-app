@@ -3,8 +3,9 @@ import { Modal } from '@/components/common/Modal';
 import { ImageUpload } from '@/components/common/ImageUpload';
 import { productService } from '@/services/product.service';
 import { categoryService } from '@/services/category.service';
+import { storeService } from '@/services/store.service';
 import { useAuthStore } from '@/store/authStore';
-import type { Product, Category, ProductInsert } from '@/types/models';
+import type { Product, Category, Store, ProductInsert } from '@/types/models';
 import { Package, DollarSign } from 'lucide-react';
 
 interface ProductFormModalProps {
@@ -17,11 +18,13 @@ interface ProductFormModalProps {
 export const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: ProductFormModalProps) => {
   const { user } = useAuthStore();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     category_id: '',
+    store_id: '',
     unit_type: 'unit' as 'unit' | 'weight',
     default_price: '',
     default_unit: '',
@@ -30,10 +33,12 @@ export const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: Produc
   useEffect(() => {
     if (isOpen) {
       loadCategories();
+      loadStores();
       if (product) {
         setFormData({
           name: product.name,
           category_id: product.category_id || '',
+          store_id: product.store_id || '',
           unit_type: product.unit_type,
           default_price: product.default_price?.toString() || '',
           default_unit: product.default_unit || '',
@@ -43,6 +48,7 @@ export const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: Produc
         setFormData({
           name: '',
           category_id: '',
+          store_id: '',
           unit_type: 'unit',
           default_price: '',
           default_unit: '',
@@ -62,6 +68,16 @@ export const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: Produc
     }
   };
 
+  const loadStores = async () => {
+    if (!user) return;
+    try {
+      const data = await storeService.getStores(user.id);
+      setStores(data);
+    } catch (error) {
+      console.error('Error loading stores:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -73,7 +89,7 @@ export const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: Produc
         user_id: user.id,
         name: formData.name,
         category_id: formData.category_id || null,
-        store_id: null,
+        store_id: formData.store_id || null,
         unit_type: formData.unit_type,
         default_price: formData.default_price ? parseFloat(formData.default_price) : null,
         default_unit: formData.default_unit || null,
@@ -169,6 +185,28 @@ export const ProductFormModal = ({ isOpen, onClose, onSuccess, product }: Produc
               </option>
             ))}
           </select>
+        </div>
+
+        {/* Store Selector */}
+        <div>
+          <label className="block text-sm font-bold text-neutral-700 mb-2">
+            Tienda (opcional)
+          </label>
+          <select
+            value={formData.store_id}
+            onChange={(e) => setFormData({ ...formData, store_id: e.target.value })}
+            className="w-full px-4 py-3 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors"
+          >
+            <option value="">Sin tienda específica...</option>
+            {stores.map((store) => (
+              <option key={store.id} value={store.id}>
+                {store.icon} {store.name}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-neutral-500 mt-1">
+            Asocia el producto a una tienda específica
+          </p>
         </div>
 
         {/* Default Price */}

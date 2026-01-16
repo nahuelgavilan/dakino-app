@@ -74,23 +74,6 @@ export class AuthService {
     return data;
   }
 
-  private async createProfile(
-    userId: string,
-    email: string,
-    fullName: string
-  ) {
-    const { error } = await supabase.from('profiles').insert({
-      id: userId,
-      email,
-      full_name: fullName,
-    });
-
-    if (error) {
-      console.error('Error creating profile:', error);
-      throw error;
-    }
-  }
-
   async updateProfile(userId: string, updates: Partial<Profile>) {
     const { error } = await supabase
       .from('profiles')
