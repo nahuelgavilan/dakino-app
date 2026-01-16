@@ -4,6 +4,30 @@ Colección de scripts útiles para desarrollo.
 
 ## Scripts Disponibles
 
+### `run-migrations.ts`
+Ejecuta migraciones automáticas en Supabase Local.
+
+```bash
+npm run migrate
+# o
+npx tsx scripts/run-migrations.ts
+```
+
+**Hace:**
+- Crea 8 categorías por defecto para cada usuario
+- Crea 8 tiendas por defecto para cada usuario
+- Verifica duplicados (no sobreescribe)
+- Funciona con todos los usuarios existentes
+
+**Cuándo ejecutar:**
+- Primera vez que usas la app (después de crear cuenta)
+- Después de resetear la base de datos
+- Si los selectores de categoría/tienda aparecen vacíos
+
+**Requisitos:**
+- Supabase Local debe estar corriendo (`docker ps | grep kong`)
+- Debes tener al menos una cuenta creada en la app
+
 ### `docker-dev.sh`
 Inicia el entorno completo de desarrollo con Docker.
 
