@@ -7,6 +7,8 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { PurchasesPage } from '@/pages/purchases/PurchasesPage';
 import { PurchaseFormPage } from '@/pages/purchases/PurchaseFormPage';
 import { ProductsPage } from '@/pages/ProductsPage';
+import { BundlesPage } from '@/pages/BundlesPage';
+import { BundleFormPage } from '@/pages/BundleFormPage';
 import { AnalyticsPage } from '@/pages/AnalyticsPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { ROUTES } from './routes';
@@ -31,6 +33,22 @@ export const AppRouter = () => {
             </ProtectedRoute>
           }
         />
+        <Route
+          path={ROUTES.APP.BUNDLES_NEW}
+          element={
+            <ProtectedRoute>
+              <BundleFormPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={ROUTES.APP.BUNDLES_EDIT}
+          element={
+            <ProtectedRoute>
+              <BundleFormPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Rutas protegidas (App) */}
         <Route
@@ -43,6 +61,7 @@ export const AppRouter = () => {
           <Route path={ROUTES.APP.DASHBOARD} element={<DashboardPage />} />
           <Route path={ROUTES.APP.PURCHASES} element={<PurchasesPage />} />
           <Route path={ROUTES.APP.PRODUCTS} element={<ProductsPage />} />
+          <Route path={ROUTES.APP.BUNDLES} element={<BundlesPage />} />
           <Route path={ROUTES.APP.ANALYTICS} element={<AnalyticsPage />} />
           <Route path={ROUTES.APP.PROFILE} element={<ProfilePage />} />
         </Route>
