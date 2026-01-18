@@ -1,5 +1,5 @@
-import { NavLink } from 'react-router-dom';
-import { Home, LayoutGrid, Package, User } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { Home, Package, Archive, User, Plus } from 'lucide-react';
 import { ROUTES } from '@/router/routes';
 
 const navItems = [
@@ -10,14 +10,21 @@ const navItems = [
     gradient: 'from-primary-500 to-pink-500',
   },
   {
-    path: ROUTES.APP.GESTION,
-    icon: LayoutGrid,
-    label: 'Gestión',
-    gradient: 'from-secondary-500 to-cyan-500',
+    path: ROUTES.APP.PRODUCTS,
+    icon: Package,
+    label: 'Catálogo',
+    gradient: 'from-blue-500 to-indigo-500',
+  },
+  {
+    path: 'fab', // Special case for FAB
+    icon: Plus,
+    label: 'Comprar',
+    gradient: 'from-primary-500 to-pink-500',
+    isFab: true,
   },
   {
     path: ROUTES.APP.INVENTORY,
-    icon: Package,
+    icon: Archive,
     label: 'Inventario',
     gradient: 'from-amber-500 to-orange-500',
   },
@@ -30,19 +37,39 @@ const navItems = [
 ];
 
 export const BottomNav = () => {
+  const navigate = useNavigate();
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border-t border-neutral-200/50 dark:border-neutral-700/50 pb-safe transition-colors duration-200 safe-area-inset-bottom">
-      <div className="max-w-7xl mx-auto px-0.5">
-        <div className="flex items-center justify-around py-1">
+      <div className="max-w-7xl mx-auto px-1">
+        <div className="flex items-center justify-around py-1.5">
           {navItems.map((item) => {
             const Icon = item.icon;
+
+            // Special FAB button in the center
+            if (item.isFab) {
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => navigate(ROUTES.APP.PURCHASES_NEW)}
+                  className="flex flex-col items-center gap-0.5 -mt-5"
+                >
+                  <div className="w-14 h-14 bg-gradient-to-br from-primary-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-500/30 active:scale-95 transition-transform">
+                    <Icon size={26} className="text-white" strokeWidth={2.5} />
+                  </div>
+                  <span className="text-[9px] font-bold text-neutral-500 dark:text-neutral-400 mt-0.5">
+                    {item.label}
+                  </span>
+                </button>
+              );
+            }
 
             return (
               <NavLink
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `flex flex-col items-center gap-0.5 px-1 py-2 min-w-[50px] rounded-xl transition-all duration-200 ${
+                  `flex flex-col items-center gap-0.5 px-2 py-1.5 min-w-[52px] rounded-xl transition-all duration-200 ${
                     isActive
                       ? 'scale-105'
                       : 'opacity-70 hover:opacity-100 active:scale-95'
@@ -52,9 +79,9 @@ export const BottomNav = () => {
                 {({ isActive }) => (
                   <>
                     <div
-                      className={`p-2 rounded-lg transition-all duration-200 ${
+                      className={`p-2 rounded-xl transition-all duration-200 ${
                         isActive
-                          ? `bg-gradient-to-br ${item.gradient} shadow-lg`
+                          ? `bg-gradient-to-br ${item.gradient} shadow-md`
                           : 'bg-transparent'
                       }`}
                     >

@@ -1,251 +1,182 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/common/Button';
-import { TagPicker } from '@/components/tags/TagPicker';
-import { QuickProductCreate } from '@/components/purchases/QuickProductCreate';
-import { QuickCreateModal } from '@/components/common/QuickCreateModal';
+import { ProductFormModal } from '@/components/products/ProductFormModal';
 import { purchaseService } from '@/services/purchase.service';
 import { productService } from '@/services/product.service';
 import { categoryService } from '@/services/category.service';
-import { tagService } from '@/services/tag.service';
 import { storeService } from '@/services/store.service';
 import { inventoryService } from '@/services/inventory.service';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/hooks/useToast';
-import type { Product, Category, Tag, Store, StorageLocation } from '@/types/models';
-import { Package, Scale, X, Search, Plus, List, Archive, MapPin, Calendar } from 'lucide-react';
-
-const CATEGORY_ICONS = ['🍎', '🥕', '🥖', '🥛', '🍖', '🐟', '🧀', '🍫', '🥤', '🧴', '🧼', '🏠'];
-const STORE_ICONS = ['🏪', '🛒', '🏬', '🛍️', '🏢', '🏭', '🏛️', '🏦', '🏨', '🏩', '🏫'];
+import type { Product, Category, Store, StorageLocation } from '@/types/models';
+import {
+  Package,
+  X,
+  Search,
+  Plus,
+  Archive,
+  MapPin,
+  Calendar,
+  ChevronRight,
+  Check
+} from 'lucide-react';
 
 export const PurchaseForm = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthStore();
   const { success, error: showError } = useToast();
 
-  const [unitType, setUnitType] = useState<'unit' | 'weight'>('unit');
-  const [productSearch, setProductSearch] = useState('');
+  // Get pre-selected product from navigation state (from ProductsPage quick buy)
+  const preSelectedProduct = location.state?.product as Product | undefined;
+
+  const [step, setStep] = useState<'product' | 'details'>(preSelectedProduct ? 'details' : 'product');
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(preSelectedProduct || null);
+
+  // Product selection state
   const [products, setProducts] = useState<Product[]>([]);
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [locations, setLocations] = useState<StorageLocation[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [showProductSuggestions, setShowProductSuggestions] = useState(false);
-  const [showProductCatalog, setShowProductCatalog] = useState(false);
-  const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
-  const [showQuickCreate, setShowQuickCreate] = useState(false);
-  const [showCategoryCreate, setShowCategoryCreate] = useState(false);
-  const [showStoreCreate, setShowStoreCreate] = useState(false);
-  const [catalogSearch, setCatalogSearch] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showCreateProduct, setShowCreateProduct] = useState(false);
 
-  // Inventory fields
+  // Purchase details state
+  const [quantity, setQuantity] = useState('1');
+  const [unitPrice, setUnitPrice] = useState('');
+  const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
+  const [storeId, setStoreId] = useState('');
+  const [notes, setNotes] = useState('');
+
+  // Inventory state
   const [addToInventory, setAddToInventory] = useState(true);
   const [locationId, setLocationId] = useState('');
   const [expirationDate, setExpirationDate] = useState('');
 
-  const [formData, setFormData] = useState({
-    productName: '',
-    categoryId: '',
-    storeId: '',
-    quantity: '',
-    unitPrice: '',
-    purchaseDate: new Date().toISOString().split('T')[0],
-    notes: '',
-  });
-
   const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
-    loadCategoriesAndStores();
-    loadAllProducts();
+    loadInitialData();
   }, []);
 
   useEffect(() => {
-    if (productSearch.length >= 2) {
-      searchProducts(productSearch);
-    } else {
-      setProducts([]);
-      setShowProductSuggestions(false);
+    if (selectedProduct) {
+      // Pre-fill price from product defaults
+      if (selectedProduct.default_price) {
+        setUnitPrice(selectedProduct.default_price.toString());
+      }
+      // Pre-fill store from product defaults
+      if (selectedProduct.store_id) {
+        setStoreId(selectedProduct.store_id);
+      }
     }
-  }, [productSearch]);
+  }, [selectedProduct]);
 
-  const loadCategoriesAndStores = async () => {
+  const loadInitialData = async () => {
     if (!user) return;
     try {
-      const [categoriesData, storesData, locationsData] = await Promise.all([
+      setLoadingData(true);
+      const [productsData, categoriesData, storesData, locationsData] = await Promise.all([
+        productService.getProducts(user.id),
         categoryService.getCategories(user.id),
         storeService.getStores(user.id),
         inventoryService.getStorageLocations(),
       ]);
+      setProducts(productsData);
       setCategories(categoriesData);
       setStores(storesData);
       setLocations(locationsData);
-      // Set default location to first one (Despensa)
-      if (locationsData.length > 0 && !locationId) {
+
+      // Set default location
+      if (locationsData.length > 0) {
         setLocationId(locationsData[0].id);
       }
     } catch (err) {
       console.error('Error loading data:', err);
-      showError('Error al cargar categorías y tiendas');
+      showError('Error al cargar datos');
+    } finally {
+      setLoadingData(false);
     }
   };
 
-  const loadAllProducts = async () => {
-    if (!user) return;
-    try {
-      const allProductsData = await productService.getProducts(user.id);
-      setAllProducts(allProductsData);
-    } catch (err) {
-      console.error('Error loading products:', err);
-    }
-  };
-
-  const searchProducts = async (query: string) => {
-    if (!user) return;
-
-    try {
-      const results = await productService.searchProducts(user.id, query);
-      setProducts(results);
-      setShowProductSuggestions(results.length > 0);
-    } catch (err) {
-      console.error('Error searching products:', err);
-    }
-  };
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = !selectedCategory || product.category_id === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   const selectProduct = (product: Product) => {
     setSelectedProduct(product);
-    setProductSearch(product.name);
-    setFormData(prev => ({
-      ...prev,
-      productName: product.name,
-      categoryId: product.category_id || '',
-      storeId: product.store_id || '',
-      unitPrice: product.default_price?.toString() || '',
-    }));
-    setUnitType(product.unit_type);
-    setShowProductSuggestions(false);
+    setStep('details');
   };
 
-  const handleProductCreated = (product: Product) => {
-    selectProduct(product);
-    loadAllProducts(); // Reload to include new product
+  const handleProductCreated = () => {
+    loadInitialData();
+    setShowCreateProduct(false);
   };
-
-  const handleCreateCategory = async (name: string, icon: string) => {
-    if (!user) return;
-    try {
-      const newCategory = await categoryService.createCategory({
-        user_id: user.id,
-        name,
-        icon,
-        color: '#3B82F6',
-        is_default: false,
-      });
-      await loadCategoriesAndStores();
-      setFormData(prev => ({ ...prev, categoryId: newCategory.id }));
-      success(`Categoría "${name}" creada`);
-    } catch (error) {
-      console.error('Error creating category:', error);
-      showError('Error al crear la categoría');
-      throw error;
-    }
-  };
-
-  const handleCreateStore = async (name: string, icon: string) => {
-    if (!user) return;
-    try {
-      const newStore = await storeService.createStore({
-        user_id: user.id,
-        name,
-        icon,
-        color: '#10B981',
-        is_favorite: false,
-      });
-      await loadCategoriesAndStores();
-      setFormData(prev => ({ ...prev, storeId: newStore.id }));
-      success(`Tienda "${name}" creada`);
-    } catch (error) {
-      console.error('Error creating store:', error);
-      showError('Error al crear la tienda');
-      throw error;
-    }
-  };
-
-  // Filter catalog products based on search
-  const filteredCatalogProducts = catalogSearch.trim()
-    ? allProducts.filter(product =>
-        product.name.toLowerCase().includes(catalogSearch.toLowerCase()) ||
-        product.category?.name.toLowerCase().includes(catalogSearch.toLowerCase()) ||
-        product.store?.name.toLowerCase().includes(catalogSearch.toLowerCase())
-      )
-    : allProducts;
 
   const calculateTotal = (): number => {
-    const quantity = parseFloat(formData.quantity) || 0;
-    const price = parseFloat(formData.unitPrice) || 0;
-    return quantity * price;
+    const qty = parseFloat(quantity) || 0;
+    const price = parseFloat(unitPrice) || 0;
+    return qty * price;
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    if (!user) {
-      showError('Debes iniciar sesión');
+    if (!user || !selectedProduct) {
+      showError('Selecciona un producto');
       return;
     }
 
-    if (!formData.productName || !formData.quantity || !formData.unitPrice) {
-      showError('Por favor completa producto, cantidad y precio');
+    if (!quantity || !unitPrice) {
+      showError('Completa cantidad y precio');
       return;
     }
 
     setLoading(true);
 
     try {
-      // Ensure empty strings are converted to null for FK fields
-      const categoryId = formData.categoryId || null;
-      const storeId = formData.storeId || null;
-
       const purchase = await purchaseService.createPurchase({
         user_id: user.id,
-        product_id: selectedProduct?.id || null,
-        product_name: formData.productName,
-        category_id: categoryId,
-        store_id: storeId,
-        unit_type: unitType,
-        quantity: unitType === 'unit' ? parseInt(formData.quantity) : null,
-        weight: unitType === 'weight' ? parseFloat(formData.quantity) : null,
-        unit_price: unitType === 'unit' ? parseFloat(formData.unitPrice) : null,
-        price_per_unit: unitType === 'weight' ? parseFloat(formData.unitPrice) : null,
+        product_id: selectedProduct.id,
+        product_name: selectedProduct.name,
+        category_id: selectedProduct.category_id || null,
+        store_id: storeId || null,
+        unit_type: selectedProduct.unit_type,
+        quantity: selectedProduct.unit_type === 'unit' ? parseInt(quantity) : null,
+        weight: selectedProduct.unit_type === 'weight' ? parseFloat(quantity) : null,
+        unit_price: selectedProduct.unit_type === 'unit' ? parseFloat(unitPrice) : null,
+        price_per_unit: selectedProduct.unit_type === 'weight' ? parseFloat(unitPrice) : null,
         total_price: calculateTotal(),
-        purchase_date: formData.purchaseDate,
-        notes: formData.notes || null,
+        purchase_date: purchaseDate,
+        notes: notes || null,
         image_url: null,
       });
 
-      // Add tags to purchase
-      if (selectedTags.length > 0) {
-        await tagService.setTagsForPurchase(
-          purchase.id,
-          selectedTags.map(tag => tag.id)
-        );
-      }
+      // Update product usage
+      await productService.updateProduct(selectedProduct.id, {
+        usage_count: (selectedProduct.usage_count || 0) + 1,
+        last_used_at: new Date().toISOString(),
+      });
 
       // Create inventory item if enabled
       if (addToInventory) {
-        const quantity = parseFloat(formData.quantity) || 0;
-        const unit = unitType === 'unit' ? 'unidades' : 'kg';
+        const qty = parseFloat(quantity) || 0;
+        const unit = selectedProduct.unit_type === 'unit' ? 'unidades' : (selectedProduct.default_unit || 'kg');
 
         await inventoryService.createInventoryItem({
           user_id: user.id,
-          product_id: selectedProduct?.id || null,
-          product_name: formData.productName,
-          category_id: categoryId,
+          product_id: selectedProduct.id,
+          product_name: selectedProduct.name,
+          category_id: selectedProduct.category_id || null,
           purchase_id: purchase.id,
-          initial_quantity: quantity,
-          current_quantity: quantity,
+          initial_quantity: qty,
+          current_quantity: qty,
           unit: unit,
           location_id: locationId || null,
           minimum_quantity: 1,
@@ -256,7 +187,7 @@ export const PurchaseForm = () => {
         });
       }
 
-      success(addToInventory ? '✨ Compra registrada y añadida al inventario' : '✨ Compra registrada correctamente');
+      success(addToInventory ? '✨ Compra registrada y añadida al inventario' : '✨ Compra registrada');
       navigate('/');
     } catch (err: any) {
       console.error('Error creating purchase:', err);
@@ -268,495 +199,380 @@ export const PurchaseForm = () => {
 
   const total = calculateTotal();
 
+  // STEP 1: Product Selection
+  if (step === 'product') {
+    return (
+      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
+        {/* Header */}
+        <div className="sticky top-0 z-30 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border-b border-neutral-200/50 dark:border-neutral-700/50">
+          <div className="px-4 py-4">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h1 className="text-2xl font-display font-bold text-neutral-900 dark:text-neutral-100">
+                  Nueva Compra
+                </h1>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-0.5">
+                  Paso 1: Selecciona el producto
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/')}
+                className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
+              >
+                <X size={24} className="text-neutral-500" />
+              </button>
+            </div>
+
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" size={20} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar producto..."
+                className="w-full pl-12 pr-4 py-3 bg-neutral-100 dark:bg-neutral-800 border-0 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none text-neutral-900 dark:text-neutral-100"
+                autoFocus
+              />
+            </div>
+          </div>
+
+          {/* Category Filter */}
+          <div className="px-4 pb-3 flex gap-2 overflow-x-auto">
+            <button
+              onClick={() => setSelectedCategory(null)}
+              className={`flex-shrink-0 px-4 py-2 rounded-full font-medium text-sm transition-all ${
+                selectedCategory === null
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'
+              }`}
+            >
+              Todos
+            </button>
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setSelectedCategory(category.id)}
+                className={`flex-shrink-0 px-4 py-2 rounded-full font-medium text-sm transition-all flex items-center gap-1.5 ${
+                  selectedCategory === category.id
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'
+                }`}
+              >
+                <span>{category.icon}</span>
+                {category.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Products List */}
+        <div className="px-4 py-4 pb-32">
+          {loadingData ? (
+            <div className="flex justify-center py-12">
+              <div className="w-8 h-8 border-3 border-primary-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="text-center py-12">
+              <Package className="mx-auto text-neutral-300 dark:text-neutral-600 mb-3" size={48} />
+              <p className="text-neutral-500 dark:text-neutral-400 mb-2">
+                {searchQuery ? 'No se encontraron productos' : 'Tu catálogo está vacío'}
+              </p>
+              <p className="text-sm text-neutral-400 mb-4">
+                Crea un producto primero para poder registrar compras
+              </p>
+              <button
+                onClick={() => setShowCreateProduct(true)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-500 text-white font-medium rounded-xl"
+              >
+                <Plus size={18} />
+                Crear producto
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredProducts.map((product) => (
+                <button
+                  key={product.id}
+                  onClick={() => selectProduct(product)}
+                  className="w-full bg-white dark:bg-neutral-800 rounded-xl p-4 flex items-center gap-4 shadow-sm hover:shadow-md active:scale-[0.98] transition-all text-left"
+                >
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                    style={{ backgroundColor: (product.category?.color || '#6366F1') + '20' }}
+                  >
+                    {product.category?.icon || '📦'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-neutral-900 dark:text-neutral-100 truncate">
+                      {product.name}
+                    </p>
+                    <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                      {product.category?.name || 'Sin categoría'}
+                      {product.default_price && ` • $${product.default_price.toFixed(2)}`}
+                    </p>
+                  </div>
+                  <ChevronRight className="text-neutral-300 flex-shrink-0" size={20} />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Create Product Button (Fixed) */}
+        <div className="fixed bottom-20 left-0 right-0 px-4 pb-4 bg-gradient-to-t from-neutral-50 dark:from-neutral-950 pt-8">
+          <button
+            onClick={() => setShowCreateProduct(true)}
+            className="w-full flex items-center justify-center gap-2 py-4 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 font-bold rounded-xl shadow-lg"
+          >
+            <Plus size={20} />
+            Crear nuevo producto
+          </button>
+        </div>
+
+        {/* Create Product Modal */}
+        <ProductFormModal
+          isOpen={showCreateProduct}
+          onClose={() => setShowCreateProduct(false)}
+          onSuccess={handleProductCreated}
+          product={null}
+        />
+      </div>
+    );
+  }
+
+  // STEP 2: Purchase Details
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-primary-50/20 to-secondary-50/20">
+    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 pb-32">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-lg border-b border-neutral-200/50 sticky top-0 z-20">
-        <div className="max-w-3xl mx-auto px-4 py-4">
+      <div className="sticky top-0 z-30 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border-b border-neutral-200/50 dark:border-neutral-700/50">
+        <div className="px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-black text-neutral-900">
-              Nueva Compra
-            </h1>
+            <div>
+              <h1 className="text-2xl font-display font-bold text-neutral-900 dark:text-neutral-100">
+                Nueva Compra
+              </h1>
+              <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-0.5">
+                Paso 2: Detalles de la compra
+              </p>
+            </div>
             <button
               onClick={() => navigate('/')}
-              className="p-2 hover:bg-neutral-100 rounded-full transition-colors"
+              className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
             >
-              <X size={24} />
+              <X size={24} className="text-neutral-500" />
             </button>
           </div>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="max-w-3xl mx-auto px-4 py-8">
-        {/* Unit Type Toggle */}
-        <div className="bg-white rounded-3xl p-2 shadow-lg mb-6 flex gap-2">
-          <button
-            type="button"
-            onClick={() => setUnitType('unit')}
-            className={`flex-1 py-4 rounded-2xl font-bold transition-all duration-200 ${
-              unitType === 'unit'
-                ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg'
-                : 'text-neutral-600 hover:bg-neutral-50'
-            }`}
-          >
-            <Package className="inline mr-2" size={20} />
-            Por Unidad
-          </button>
-          <button
-            type="button"
-            onClick={() => setUnitType('weight')}
-            className={`flex-1 py-4 rounded-2xl font-bold transition-all duration-200 ${
-              unitType === 'weight'
-                ? 'bg-gradient-to-r from-secondary-500 to-secondary-600 text-white shadow-lg'
-                : 'text-neutral-600 hover:bg-neutral-50'
-            }`}
-          >
-            <Scale className="inline mr-2" size={20} />
-            Por Peso
-          </button>
-        </div>
-
-        <div className="bg-white rounded-3xl p-6 shadow-xl space-y-6">
-          {/* Product Search with Catalog Button */}
-          <div className="relative">
-            <label className="block text-sm font-bold text-neutral-700 mb-2">
-              Producto *
-            </label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" size={20} />
-                <input
-                  type="text"
-                  value={productSearch}
-                  onChange={(e) => {
-                    setProductSearch(e.target.value);
-                    setFormData(prev => ({ ...prev, productName: e.target.value }));
-                  }}
-                  onFocus={() => products.length > 0 && setShowProductSuggestions(true)}
-                  placeholder="Buscar o escribir nombre..."
-                  className="w-full pl-12 pr-4 py-3 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none font-medium transition-colors"
-                  required
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowProductCatalog(true)}
-                className="px-4 py-3 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200 transition-colors flex items-center gap-2 whitespace-nowrap"
-                title="Ver catálogo completo"
-              >
-                <List size={20} />
-                <span className="text-sm font-bold">Catálogo</span>
-              </button>
+      <form onSubmit={handleSubmit} className="px-4 py-6 space-y-6">
+        {/* Selected Product Card */}
+        <div className="bg-white dark:bg-neutral-800 rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div
+              className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
+              style={{ backgroundColor: (selectedProduct?.category?.color || '#6366F1') + '20' }}
+            >
+              {selectedProduct?.category?.icon || '📦'}
             </div>
-
-            {/* Suggestions Dropdown */}
-            {showProductSuggestions && (
-              <div className="absolute z-10 w-full mt-2 bg-white rounded-2xl shadow-2xl border-2 border-neutral-100 max-h-64 overflow-y-auto">
-                {products.length > 0 ? (
-                  products.map((product) => (
-                    <button
-                      key={product.id}
-                      type="button"
-                      onClick={() => selectProduct(product)}
-                      className="w-full px-4 py-3 text-left hover:bg-primary-50 transition-colors border-b border-neutral-100 last:border-0"
-                    >
-                      <div className="font-semibold text-neutral-900">{product.name}</div>
-                      <div className="text-sm text-neutral-500 mt-1">
-                        ${product.default_price?.toFixed(2)} • Usado {product.usage_count} veces
-                      </div>
-                    </button>
-                  ))
-                ) : null}
-
-                {/* Create new product button */}
-                {productSearch.length >= 2 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowQuickCreate(true);
-                      setShowProductSuggestions(false);
-                    }}
-                    className="w-full px-4 py-3 text-left bg-primary-50 hover:bg-primary-100 transition-colors border-t-2 border-primary-200 flex items-center gap-2 text-primary-700 font-bold"
-                  >
-                    <Plus size={20} />
-                    Crear "{productSearch}"
-                  </button>
+            <div className="flex-1">
+              <p className="font-bold text-neutral-900 dark:text-neutral-100">
+                {selectedProduct?.name}
+              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs px-2 py-0.5 bg-neutral-100 dark:bg-neutral-700 rounded-full text-neutral-600 dark:text-neutral-400">
+                  {selectedProduct?.unit_type === 'unit' ? '📦 Por unidad' : '⚖️ Por peso'}
+                </span>
+                {selectedProduct?.category && (
+                  <span className="text-xs text-neutral-500">
+                    {selectedProduct.category.name}
+                  </span>
                 )}
               </div>
-            )}
-          </div>
-
-          {/* Category with Quick Create */}
-          <div>
-            <label className="block text-sm font-bold text-neutral-700 mb-2">
-              Categoría (opcional)
-            </label>
-            <div className="flex gap-2">
-              <select
-                value={formData.categoryId}
-                onChange={(e) => setFormData(prev => ({ ...prev, categoryId: e.target.value }))}
-                className="flex-1 px-4 py-3 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors"
-              >
-                <option value="">Sin categoría...</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.icon} {category.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={() => setShowCategoryCreate(true)}
-                className="px-4 py-3 bg-primary-100 text-primary-600 rounded-xl hover:bg-primary-200 transition-colors"
-                title="Crear nueva categoría"
-              >
-                <Plus size={20} />
-              </button>
             </div>
+            <button
+              type="button"
+              onClick={() => setStep('product')}
+              className="text-sm text-primary-500 font-medium"
+            >
+              Cambiar
+            </button>
           </div>
+        </div>
 
-          {/* Store with Quick Create */}
-          <div>
-            <label className="block text-sm font-bold text-neutral-700 mb-2">
-              Tienda (opcional)
-            </label>
-            <div className="flex gap-2">
-              <select
-                value={formData.storeId}
-                onChange={(e) => setFormData(prev => ({ ...prev, storeId: e.target.value }))}
-                className="flex-1 px-4 py-3 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors"
-              >
-                <option value="">Sin tienda específica...</option>
-                {stores.map((store) => (
-                  <option key={store.id} value={store.id}>
-                    {store.icon} {store.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={() => setShowStoreCreate(true)}
-                className="px-4 py-3 bg-secondary-100 text-secondary-600 rounded-xl hover:bg-secondary-200 transition-colors"
-                title="Crear nueva tienda"
-              >
-                <Plus size={20} />
-              </button>
-            </div>
-          </div>
-
-          {/* Cantidad y Precio lado a lado */}
-          <div className="grid grid-cols-2 gap-3">
+        {/* Quantity and Price */}
+        <div className="bg-white dark:bg-neutral-800 rounded-2xl p-4 shadow-sm space-y-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-                {unitType === 'unit' ? 'Cantidad *' : 'Peso (kg) *'}
+              <label className="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-2">
+                {selectedProduct?.unit_type === 'unit' ? 'Cantidad' : 'Peso (kg)'}
               </label>
               <input
                 type="number"
-                step="0.01"
-                value={formData.quantity}
-                onChange={(e) => setFormData(prev => ({ ...prev, quantity: e.target.value }))}
-                placeholder={unitType === 'unit' ? '1' : '0.5'}
+                step={selectedProduct?.unit_type === 'weight' ? '0.001' : '1'}
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                placeholder="1"
                 required
-                className="w-full px-3 py-2.5 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors text-lg font-bold text-center"
+                className="w-full px-4 py-3 bg-neutral-100 dark:bg-neutral-700 border-0 rounded-xl text-xl font-bold text-center focus:ring-2 focus:ring-primary-500 focus:outline-none text-neutral-900 dark:text-neutral-100"
               />
             </div>
-
             <div>
-              <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-                {unitType === 'unit' ? 'Precio unit. *' : 'Precio/kg *'}
+              <label className="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-2">
+                {selectedProduct?.unit_type === 'unit' ? 'Precio/ud' : 'Precio/kg'}
               </label>
               <div className="relative">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-400 font-bold text-sm">$</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-bold">$</span>
                 <input
                   type="number"
                   step="0.01"
-                  value={formData.unitPrice}
-                  onChange={(e) => setFormData(prev => ({ ...prev, unitPrice: e.target.value }))}
+                  value={unitPrice}
+                  onChange={(e) => setUnitPrice(e.target.value)}
                   placeholder="0.00"
                   required
-                  className="w-full pl-7 pr-3 py-2.5 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors text-lg font-bold text-center"
+                  className="w-full pl-8 pr-4 py-3 bg-neutral-100 dark:bg-neutral-700 border-0 rounded-xl text-xl font-bold text-center focus:ring-2 focus:ring-primary-500 focus:outline-none text-neutral-900 dark:text-neutral-100"
                 />
               </div>
             </div>
           </div>
 
-          {/* Total Display - más compacto */}
-          {formData.quantity && formData.unitPrice && (
-            <div className="bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl p-4 text-white">
-              <p className="text-[10px] font-bold opacity-90">Total a pagar</p>
+          {/* Total Display */}
+          {quantity && unitPrice && (
+            <div className="bg-gradient-to-r from-primary-500 to-pink-500 rounded-xl p-4 text-white text-center">
+              <p className="text-xs font-medium opacity-80 mb-1">Total</p>
               <p className="text-3xl font-black">${total.toFixed(2)}</p>
             </div>
           )}
+        </div>
 
-          {/* Fecha compacta */}
+        {/* Date and Store */}
+        <div className="bg-white dark:bg-neutral-800 rounded-2xl p-4 shadow-sm space-y-4">
           <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-1.5">
-              Fecha *
+            <label className="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-2">
+              Fecha de compra
             </label>
             <input
               type="date"
-              value={formData.purchaseDate}
-              onChange={(e) => setFormData(prev => ({ ...prev, purchaseDate: e.target.value }))}
+              value={purchaseDate}
+              onChange={(e) => setPurchaseDate(e.target.value)}
               required
-              className="w-full px-3 py-2.5 border-2 border-neutral-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors text-sm font-bold"
+              className="w-full px-4 py-3 bg-neutral-100 dark:bg-neutral-700 border-0 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none text-neutral-900 dark:text-neutral-100"
             />
           </div>
 
-          {/* Notes */}
           <div>
-            <label className="block text-sm font-bold text-neutral-700 mb-2">
+            <label className="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-2">
+              Tienda (opcional)
+            </label>
+            <select
+              value={storeId}
+              onChange={(e) => setStoreId(e.target.value)}
+              className="w-full px-4 py-3 bg-neutral-100 dark:bg-neutral-700 border-0 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none text-neutral-900 dark:text-neutral-100"
+            >
+              <option value="">Sin tienda específica</option>
+              {stores.map((store) => (
+                <option key={store.id} value={store.id}>
+                  {store.icon} {store.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-2">
               Notas (opcional)
             </label>
             <textarea
-              value={formData.notes}
-              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-              placeholder="Añade comentarios sobre esta compra..."
-              rows={3}
-              className="w-full px-4 py-3 border-2 border-neutral-200 rounded-2xl focus:border-primary-500 focus:outline-none resize-none transition-colors"
-            />
-          </div>
-
-          {/* Inventory Section */}
-          <div className="border-t-2 border-neutral-100 pt-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
-                  <Archive size={20} className="text-amber-600" />
-                </div>
-                <div>
-                  <p className="font-bold text-neutral-900">Añadir al inventario</p>
-                  <p className="text-xs text-neutral-500">Guardar en tu despensa</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setAddToInventory(!addToInventory)}
-                className={`relative w-14 h-8 rounded-full transition-colors ${
-                  addToInventory ? 'bg-amber-500' : 'bg-neutral-300'
-                }`}
-              >
-                <span
-                  className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform ${
-                    addToInventory ? 'translate-x-7' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-
-            {addToInventory && (
-              <div className="space-y-4 bg-amber-50 rounded-2xl p-4">
-                {/* Location */}
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 mb-2 flex items-center gap-1">
-                    <MapPin size={14} />
-                    Ubicación
-                  </label>
-                  <div className="flex gap-2 flex-wrap">
-                    {locations.map((location) => (
-                      <button
-                        key={location.id}
-                        type="button"
-                        onClick={() => setLocationId(location.id)}
-                        className={`px-4 py-2 rounded-xl font-medium text-sm transition-all flex items-center gap-2 ${
-                          locationId === location.id
-                            ? 'bg-amber-500 text-white shadow-md'
-                            : 'bg-white text-neutral-700 border-2 border-neutral-200'
-                        }`}
-                      >
-                        <span>{location.icon}</span>
-                        {location.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Expiration Date */}
-                <div>
-                  <label className="block text-xs font-bold text-neutral-700 mb-2 flex items-center gap-1">
-                    <Calendar size={14} />
-                    Fecha de caducidad (opcional)
-                  </label>
-                  <input
-                    type="date"
-                    value={expirationDate}
-                    onChange={(e) => setExpirationDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="w-full px-4 py-3 border-2 border-neutral-200 bg-white rounded-xl focus:border-amber-500 focus:outline-none transition-colors"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Tags */}
-          <div>
-            <label className="block text-sm font-bold text-neutral-700 mb-2">
-              Etiquetas (opcional)
-            </label>
-            <TagPicker
-              selectedTags={selectedTags}
-              onTagsChange={setSelectedTags}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Añadir notas..."
+              rows={2}
+              className="w-full px-4 py-3 bg-neutral-100 dark:bg-neutral-700 border-0 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none resize-none text-neutral-900 dark:text-neutral-100"
             />
           </div>
         </div>
 
-        {/* Submit Button - Fixed positioning to avoid BottomNav overlap */}
-        <div className="mt-8 mb-20">
+        {/* Inventory Section */}
+        <div className="bg-white dark:bg-neutral-800 rounded-2xl p-4 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setAddToInventory(!addToInventory)}
+            className="w-full flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${addToInventory ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-neutral-100 dark:bg-neutral-700'}`}>
+                <Archive size={20} className={addToInventory ? 'text-amber-600' : 'text-neutral-400'} />
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-neutral-900 dark:text-neutral-100">Añadir al inventario</p>
+                <p className="text-xs text-neutral-500">Guardar en tu despensa</p>
+              </div>
+            </div>
+            <div className={`w-12 h-7 rounded-full transition-colors relative ${addToInventory ? 'bg-amber-500' : 'bg-neutral-300 dark:bg-neutral-600'}`}>
+              <span className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${addToInventory ? 'translate-x-6' : 'translate-x-1'}`} />
+            </div>
+          </button>
+
+          {addToInventory && (
+            <div className="mt-4 pt-4 border-t border-neutral-100 dark:border-neutral-700 space-y-4">
+              {/* Location */}
+              <div>
+                <label className="block text-xs font-bold text-neutral-600 dark:text-neutral-400 mb-2 flex items-center gap-1">
+                  <MapPin size={14} />
+                  Ubicación
+                </label>
+                <div className="flex gap-2 flex-wrap">
+                  {locations.map((location) => (
+                    <button
+                      key={location.id}
+                      type="button"
+                      onClick={() => setLocationId(location.id)}
+                      className={`px-3 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-1.5 ${
+                        locationId === location.id
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300'
+                      }`}
+                    >
+                      <span>{location.icon}</span>
+                      {location.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Expiration Date */}
+              <div>
+                <label className="block text-xs font-bold text-neutral-600 dark:text-neutral-400 mb-2 flex items-center gap-1">
+                  <Calendar size={14} />
+                  Fecha de caducidad (opcional)
+                </label>
+                <input
+                  type="date"
+                  value={expirationDate}
+                  onChange={(e) => setExpirationDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full px-4 py-3 bg-neutral-100 dark:bg-neutral-700 border-0 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none text-neutral-900 dark:text-neutral-100"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Submit Button */}
+        <div className="fixed bottom-20 left-0 right-0 px-4 pb-4 bg-gradient-to-t from-neutral-50 dark:from-neutral-950 pt-8">
           <Button
             type="submit"
             fullWidth
             size="lg"
             loading={loading}
-            className="shadow-2xl"
+            className="shadow-xl"
           >
+            <Check size={20} className="mr-2" />
             Guardar Compra
           </Button>
         </div>
       </form>
-
-      {/* Product Catalog Modal */}
-      {showProductCatalog && (
-        <div
-          className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowProductCatalog(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') setShowProductCatalog(false);
-          }}
-        >
-          <div className="bg-white dark:bg-neutral-800 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-3xl max-h-[85vh] flex flex-col animate-slide-up">
-            {/* Header */}
-            <div className="p-4 sm:p-6 border-b border-neutral-200 dark:border-neutral-700">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl sm:text-2xl font-black text-neutral-900 dark:text-neutral-100">
-                  Catálogo de Productos
-                </h2>
-                <button
-                  onClick={() => setShowProductCatalog(false)}
-                  className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-full transition-colors"
-                  aria-label="Cerrar"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              {/* Search within catalog */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" size={18} />
-                <input
-                  type="text"
-                  value={catalogSearch}
-                  onChange={(e) => setCatalogSearch(e.target.value)}
-                  placeholder="Buscar en catálogo..."
-                  className="w-full pl-10 pr-4 py-2.5 border-2 border-neutral-200 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100 rounded-xl focus:border-primary-500 focus:outline-none text-sm transition-colors"
-                  autoFocus
-                />
-              </div>
-            </div>
-
-            {/* Products Grid */}
-            <div className="flex-1 overflow-y-auto p-4">
-              {allProducts.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="text-6xl mb-4">📦</div>
-                  <p className="text-neutral-600 dark:text-neutral-400 font-medium">No tienes productos guardados aún</p>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-500 mt-2">Crea tu primer producto escribiendo un nombre arriba</p>
-                </div>
-              ) : filteredCatalogProducts.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="text-6xl mb-4">🔍</div>
-                  <p className="text-neutral-600 dark:text-neutral-400 font-medium">No se encontraron productos</p>
-                  <p className="text-sm text-neutral-500 dark:text-neutral-500 mt-2">Intenta con otro término de búsqueda</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {filteredCatalogProducts.map((product) => (
-                    <button
-                      key={product.id}
-                      type="button"
-                      onClick={() => {
-                        selectProduct(product);
-                        setShowProductCatalog(false);
-                        setCatalogSearch('');
-                      }}
-                      className="text-left p-4 border-2 border-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 rounded-2xl hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all group"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <div className="font-bold text-neutral-900 dark:text-neutral-100 group-hover:text-primary-600 dark:group-hover:text-primary-400">
-                            {product.name}
-                          </div>
-                          {product.category && (
-                            <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
-                              {product.category.icon} {product.category.name}
-                            </div>
-                          )}
-                        </div>
-                        {product.default_price && (
-                          <div className="text-lg font-black text-primary-600 dark:text-primary-400">
-                            ${product.default_price.toFixed(2)}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
-                        {product.store && (
-                          <span className="flex items-center gap-1">
-                            {product.store.icon} {product.store.name}
-                          </span>
-                        )}
-                        {product.usage_count > 0 && (
-                          <span className="ml-auto bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded-lg font-medium">
-                            {product.usage_count}x usado
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Footer Info */}
-            <div className="p-4 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50">
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center">
-                {filteredCatalogProducts.length} de {allProducts.length} productos • Haz clic para seleccionar
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Quick Product Create Modal */}
-      <QuickProductCreate
-        isOpen={showQuickCreate}
-        onClose={() => setShowQuickCreate(false)}
-        onProductCreated={handleProductCreated}
-        categories={categories}
-        stores={stores}
-        initialName={productSearch}
-        initialUnitType={unitType}
-      />
-
-      {/* Quick Create Modals for Category and Store */}
-      <QuickCreateModal
-        isOpen={showCategoryCreate}
-        onClose={() => setShowCategoryCreate(false)}
-        onSave={handleCreateCategory}
-        title="Nueva Categoría"
-        placeholder="Ej: Frutas"
-        iconSuggestions={CATEGORY_ICONS}
-      />
-
-      <QuickCreateModal
-        isOpen={showStoreCreate}
-        onClose={() => setShowStoreCreate(false)}
-        onSave={handleCreateStore}
-        title="Nueva Tienda"
-        placeholder="Ej: Mercadona"
-        iconSuggestions={STORE_ICONS}
-      />
     </div>
   );
 };
