@@ -10,10 +10,11 @@ import { productService } from '@/services/product.service';
 import { categoryService } from '@/services/category.service';
 import { tagService } from '@/services/tag.service';
 import { storeService } from '@/services/store.service';
+import { inventoryService } from '@/services/inventory.service';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/hooks/useToast';
-import type { Product, Category, Tag, Store } from '@/types/models';
-import { Package, Scale, X, Search, Plus, List } from 'lucide-react';
+import type { Product, Category, Tag, Store, StorageLocation } from '@/types/models';
+import { Package, Scale, X, Search, Plus, List, Archive, MapPin, Calendar } from 'lucide-react';
 
 const CATEGORY_ICONS = ['🍎', '🥕', '🥖', '🥛', '🍖', '🐟', '🧀', '🍫', '🥤', '🧴', '🧼', '🏠'];
 const STORE_ICONS = ['🏪', '🛒', '🏬', '🛍️', '🏢', '🏭', '🏛️', '🏦', '🏨', '🏩', '🏫'];
@@ -29,6 +30,7 @@ export const PurchaseForm = () => {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
+  const [locations, setLocations] = useState<StorageLocation[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showProductSuggestions, setShowProductSuggestions] = useState(false);
   const [showProductCatalog, setShowProductCatalog] = useState(false);
@@ -37,6 +39,11 @@ export const PurchaseForm = () => {
   const [showCategoryCreate, setShowCategoryCreate] = useState(false);
   const [showStoreCreate, setShowStoreCreate] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState('');
+
+  // Inventory fields
+  const [addToInventory, setAddToInventory] = useState(true);
+  const [locationId, setLocationId] = useState('');
+  const [expirationDate, setExpirationDate] = useState('');
 
   const [formData, setFormData] = useState({
     productName: '',
@@ -67,12 +74,18 @@ export const PurchaseForm = () => {
   const loadCategoriesAndStores = async () => {
     if (!user) return;
     try {
-      const [categoriesData, storesData] = await Promise.all([
+      const [categoriesData, storesData, locationsData] = await Promise.all([
         categoryService.getCategories(user.id),
         storeService.getStores(user.id),
+        inventoryService.getStorageLocations(),
       ]);
       setCategories(categoriesData);
       setStores(storesData);
+      setLocations(locationsData);
+      // Set default location to first one (Despensa)
+      if (locationsData.length > 0 && !locationId) {
+        setLocationId(locationsData[0].id);
+      }
     } catch (err) {
       console.error('Error loading data:', err);
       showError('Error al cargar categorías y tiendas');
@@ -216,7 +229,30 @@ export const PurchaseForm = () => {
         );
       }
 
-      success('✨ Compra registrada correctamente');
+      // Create inventory item if enabled
+      if (addToInventory) {
+        const quantity = parseFloat(formData.quantity) || 0;
+        const unit = unitType === 'unit' ? 'unidades' : 'kg';
+
+        await inventoryService.createInventoryItem({
+          user_id: user.id,
+          product_id: selectedProduct?.id || null,
+          product_name: formData.productName,
+          category_id: formData.categoryId || null,
+          purchase_id: purchase.id,
+          initial_quantity: quantity,
+          current_quantity: quantity,
+          unit: unit,
+          location_id: locationId || null,
+          minimum_quantity: 1,
+          expiration_date: expirationDate || null,
+          opened_at: null,
+          notes: null,
+          image_url: null,
+        });
+      }
+
+      success(addToInventory ? '✨ Compra registrada y añadida al inventario' : '✨ Compra registrada correctamente');
       navigate('/');
     } catch (err: any) {
       console.error('Error creating purchase:', err);
@@ -474,6 +510,78 @@ export const PurchaseForm = () => {
               rows={3}
               className="w-full px-4 py-3 border-2 border-neutral-200 rounded-2xl focus:border-primary-500 focus:outline-none resize-none transition-colors"
             />
+          </div>
+
+          {/* Inventory Section */}
+          <div className="border-t-2 border-neutral-100 pt-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+                  <Archive size={20} className="text-amber-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-neutral-900">Añadir al inventario</p>
+                  <p className="text-xs text-neutral-500">Guardar en tu despensa</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAddToInventory(!addToInventory)}
+                className={`relative w-14 h-8 rounded-full transition-colors ${
+                  addToInventory ? 'bg-amber-500' : 'bg-neutral-300'
+                }`}
+              >
+                <span
+                  className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform ${
+                    addToInventory ? 'translate-x-7' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {addToInventory && (
+              <div className="space-y-4 bg-amber-50 rounded-2xl p-4">
+                {/* Location */}
+                <div>
+                  <label className="block text-xs font-bold text-neutral-700 mb-2 flex items-center gap-1">
+                    <MapPin size={14} />
+                    Ubicación
+                  </label>
+                  <div className="flex gap-2 flex-wrap">
+                    {locations.map((location) => (
+                      <button
+                        key={location.id}
+                        type="button"
+                        onClick={() => setLocationId(location.id)}
+                        className={`px-4 py-2 rounded-xl font-medium text-sm transition-all flex items-center gap-2 ${
+                          locationId === location.id
+                            ? 'bg-amber-500 text-white shadow-md'
+                            : 'bg-white text-neutral-700 border-2 border-neutral-200'
+                        }`}
+                      >
+                        <span>{location.icon}</span>
+                        {location.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Expiration Date */}
+                <div>
+                  <label className="block text-xs font-bold text-neutral-700 mb-2 flex items-center gap-1">
+                    <Calendar size={14} />
+                    Fecha de caducidad (opcional)
+                  </label>
+                  <input
+                    type="date"
+                    value={expirationDate}
+                    onChange={(e) => setExpirationDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-4 py-3 border-2 border-neutral-200 bg-white rounded-xl focus:border-amber-500 focus:outline-none transition-colors"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Tags */}

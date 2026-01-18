@@ -4,6 +4,8 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { SignupPage } from '@/pages/auth/SignupPage';
 import { DashboardPage } from '@/pages/DashboardPage';
+import { GestionPage } from '@/pages/GestionPage';
+import { InventoryPage } from '@/pages/InventoryPage';
 import { PurchasesPage } from '@/pages/purchases/PurchasesPage';
 import { PurchaseFormPage } from '@/pages/purchases/PurchaseFormPage';
 import { PurchaseEditPage } from '@/pages/purchases/PurchaseEditPage';
@@ -87,6 +89,8 @@ export const AppRouter = () => {
           }
         >
           <Route path={ROUTES.APP.DASHBOARD} element={<DashboardPage />} />
+          <Route path={ROUTES.APP.GESTION} element={<GestionPage />} />
+          <Route path={ROUTES.APP.INVENTORY} element={<InventoryPage />} />
           <Route path={ROUTES.APP.PURCHASES} element={<PurchasesPage />} />
           <Route path={ROUTES.APP.PRODUCTS} element={<ProductsPage />} />
           <Route path={ROUTES.APP.BUNDLES} element={<BundlesPage />} />

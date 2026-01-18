@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, ShoppingBag, Package, ShoppingCart, Calendar, User } from 'lucide-react';
+import { Home, LayoutGrid, Package, User } from 'lucide-react';
 import { ROUTES } from '@/router/routes';
 
 const navItems = [
@@ -10,28 +10,16 @@ const navItems = [
     gradient: 'from-primary-500 to-pink-500',
   },
   {
-    path: ROUTES.APP.PURCHASES,
-    icon: ShoppingBag,
-    label: 'Compras',
+    path: ROUTES.APP.GESTION,
+    icon: LayoutGrid,
+    label: 'Gestión',
     gradient: 'from-secondary-500 to-cyan-500',
   },
   {
-    path: ROUTES.APP.PRODUCTS,
+    path: ROUTES.APP.INVENTORY,
     icon: Package,
-    label: 'Productos',
-    gradient: 'from-blue-500 to-indigo-500',
-  },
-  {
-    path: ROUTES.APP.BUNDLES,
-    icon: ShoppingCart,
-    label: 'Listas',
-    gradient: 'from-accent-500 to-orange-600',
-  },
-  {
-    path: ROUTES.APP.CALENDAR,
-    icon: Calendar,
-    label: 'Calendario',
-    gradient: 'from-purple-500 to-violet-500',
+    label: 'Inventario',
+    gradient: 'from-amber-500 to-orange-500',
   },
   {
     path: ROUTES.APP.PROFILE,

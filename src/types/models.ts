@@ -142,3 +142,68 @@ export type StoreUpdate = Partial<Omit<Store, 'id' | 'created_at' | 'updated_at'
 export type ProductUpdate = Partial<Omit<Product, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'category' | 'store'>>;
 export type PurchaseUpdate = Partial<Omit<Purchase, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'category' | 'store' | 'tags'>>;
 export type BundleUpdate = Partial<Omit<Bundle, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'items'>>;
+
+// ==============================================================================
+// SISTEMA DE INVENTARIO
+// ==============================================================================
+
+export type InventoryStatus = 'in_stock' | 'low' | 'empty';
+
+export interface StorageLocation {
+  id: string;
+  user_id: string | null;
+  name: string;
+  icon: string;
+  color: string;
+  sort_order: number;
+  is_default: boolean;
+  created_at: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  user_id: string;
+  product_id: string | null;
+  product_name: string;
+  category_id: string | null;
+  category?: Category;
+  purchase_id: string | null;
+
+  // Cantidades
+  initial_quantity: number;
+  current_quantity: number;
+  unit: string;
+
+  // Estado y ubicación
+  location_id: string | null;
+  location?: StorageLocation;
+  status: InventoryStatus;
+  minimum_quantity: number;
+
+  // Fechas
+  expiration_date: string | null;
+  opened_at: string | null;
+
+  // Metadata
+  notes: string | null;
+  image_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ConsumptionLog {
+  id: string;
+  inventory_item_id: string;
+  amount_consumed: number;
+  consumed_at: string;
+  notes: string | null;
+}
+
+// Tipos para inserciones de inventario
+export type StorageLocationInsert = Omit<StorageLocation, 'id' | 'created_at'>;
+export type InventoryItemInsert = Omit<InventoryItem, 'id' | 'created_at' | 'updated_at' | 'status' | 'category' | 'location'>;
+export type ConsumptionLogInsert = Omit<ConsumptionLog, 'id' | 'consumed_at'>;
+
+// Tipos para actualizaciones de inventario
+export type StorageLocationUpdate = Partial<Omit<StorageLocation, 'id' | 'created_at' | 'user_id'>>;
+export type InventoryItemUpdate = Partial<Omit<InventoryItem, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'category' | 'location'>>;

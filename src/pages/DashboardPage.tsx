@@ -4,10 +4,12 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { RecentPurchases } from '@/components/dashboard/RecentPurchases';
 import { statisticsService } from '@/services/statistics.service';
 import { purchaseService } from '@/services/purchase.service';
-import type { Purchase } from '@/types/models';
+import { inventoryService } from '@/services/inventory.service';
+import type { Purchase, InventoryItem } from '@/types/models';
 import { Spinner } from '@/components/common/Spinner';
-import { Plus } from 'lucide-react';
+import { Plus, AlertTriangle, Clock, Package, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/router/routes';
 
 export const DashboardPage = () => {
   const { user, profile } = useAuthStore();
@@ -20,6 +22,8 @@ export const DashboardPage = () => {
     todayCount: 0,
   });
   const [recentPurchases, setRecentPurchases] = useState<Purchase[]>([]);
+  const [expiringItems, setExpiringItems] = useState<InventoryItem[]>([]);
+  const [lowStockItems, setLowStockItems] = useState<InventoryItem[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -34,11 +38,13 @@ export const DashboardPage = () => {
       setLoading(true);
 
       // Load stats in parallel
-      const [todayStats, weekStats, monthStats, purchases] = await Promise.all([
+      const [todayStats, weekStats, monthStats, purchases, expiring, lowStock] = await Promise.all([
         statisticsService.getDayStats(user.id),
         statisticsService.getWeekStats(user.id),
         statisticsService.getMonthStats(user.id),
         purchaseService.getRecentPurchases(user.id, 5),
+        inventoryService.getExpiringItems(user.id, 7),
+        inventoryService.getLowStockItems(user.id),
       ]);
 
       setStats({
@@ -49,6 +55,8 @@ export const DashboardPage = () => {
       });
 
       setRecentPurchases(purchases);
+      setExpiringItems(expiring);
+      setLowStockItems(lowStock);
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {
@@ -125,6 +133,92 @@ export const DashboardPage = () => {
               <span className="font-black text-2xl text-primary-500">{stats.todayCount}</span>{' '}
               {stats.todayCount === 1 ? 'compra' : 'compras'} hoy
             </p>
+          </div>
+        )}
+
+        {/* Inventory Alerts */}
+        {(expiringItems.length > 0 || lowStockItems.length > 0) && (
+          <div className="space-y-4">
+            <h2 className="text-xl font-black text-neutral-900 flex items-center gap-2">
+              <Package size={24} className="text-amber-500" />
+              Alertas de Inventario
+            </h2>
+
+            {/* Expiring Items */}
+            {expiringItems.length > 0 && (
+              <button
+                onClick={() => navigate(ROUTES.APP.INVENTORY)}
+                className="w-full bg-amber-50 border-2 border-amber-200 rounded-2xl p-4 text-left hover:bg-amber-100 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center">
+                      <Clock size={20} className="text-white" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-amber-800">Por caducar</p>
+                      <p className="text-sm text-amber-600">
+                        {expiringItems.length} {expiringItems.length === 1 ? 'producto caduca' : 'productos caducan'} pronto
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="text-amber-400" />
+                </div>
+                <div className="mt-3 flex gap-2 flex-wrap">
+                  {expiringItems.slice(0, 3).map((item) => (
+                    <span
+                      key={item.id}
+                      className="px-3 py-1 bg-white rounded-lg text-sm font-medium text-amber-700"
+                    >
+                      {item.product_name}
+                    </span>
+                  ))}
+                  {expiringItems.length > 3 && (
+                    <span className="px-3 py-1 bg-amber-200 rounded-lg text-sm font-medium text-amber-700">
+                      +{expiringItems.length - 3} más
+                    </span>
+                  )}
+                </div>
+              </button>
+            )}
+
+            {/* Low Stock Items */}
+            {lowStockItems.length > 0 && (
+              <button
+                onClick={() => navigate(ROUTES.APP.INVENTORY)}
+                className="w-full bg-red-50 border-2 border-red-200 rounded-2xl p-4 text-left hover:bg-red-100 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-red-500 rounded-xl flex items-center justify-center">
+                      <AlertTriangle size={20} className="text-white" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-red-800">Stock bajo</p>
+                      <p className="text-sm text-red-600">
+                        {lowStockItems.length} {lowStockItems.length === 1 ? 'producto está' : 'productos están'} por acabarse
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="text-red-400" />
+                </div>
+                <div className="mt-3 flex gap-2 flex-wrap">
+                  {lowStockItems.slice(0, 3).map((item) => (
+                    <span
+                      key={item.id}
+                      className="px-3 py-1 bg-white rounded-lg text-sm font-medium text-red-700"
+                    >
+                      {item.product_name}
+                    </span>
+                  ))}
+                  {lowStockItems.length > 3 && (
+                    <span className="px-3 py-1 bg-red-200 rounded-lg text-sm font-medium text-red-700">
+                      +{lowStockItems.length - 3} más
+                    </span>
+                  )}
+                </div>
+              </button>
+            )}
           </div>
         )}
 
