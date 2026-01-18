@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { ROUTES } from '@/router/routes';
 import { bundleService } from '@/services/bundle.service';
 import { productService } from '@/services/product.service';
 import { categoryService } from '@/services/category.service';
@@ -221,7 +222,7 @@ export const BundleFormPage = () => {
       }
 
       success(id ? 'Lista actualizada' : '✨ Lista creada');
-      navigate('/gestion');
+      navigate(ROUTES.APP.BUNDLES);
     } catch (error) {
       console.error('Error saving bundle:', error);
       showError('Error al guardar la lista');
@@ -248,7 +249,7 @@ export const BundleFormPage = () => {
               {id ? 'Editar Lista' : 'Nueva Lista'}
             </h1>
             <button
-              onClick={() => navigate('/gestion')}
+              onClick={() => navigate(ROUTES.APP.BUNDLES)}
               className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors"
             >
               <X size={24} className="text-neutral-500" />

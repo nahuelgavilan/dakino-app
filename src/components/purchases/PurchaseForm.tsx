@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/common/Button';
+import { DatePicker } from '@/components/common/DatePicker';
 import { ProductFormModal } from '@/components/products/ProductFormModal';
 import { purchaseService } from '@/services/purchase.service';
 import { productService } from '@/services/product.service';
@@ -18,7 +19,6 @@ import {
   Plus,
   Archive,
   MapPin,
-  Calendar,
   ChevronRight,
   Check
 } from 'lucide-react';
@@ -448,18 +448,13 @@ export const PurchaseForm = () => {
 
         {/* Date and Store */}
         <div className="bg-white dark:bg-neutral-800 rounded-2xl p-4 shadow-sm space-y-4">
-          <div>
-            <label className="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-2">
-              Fecha de compra
-            </label>
-            <input
-              type="date"
-              value={purchaseDate}
-              onChange={(e) => setPurchaseDate(e.target.value)}
-              required
-              className="w-full px-4 py-3 bg-neutral-100 dark:bg-neutral-700 border-0 rounded-xl focus:ring-2 focus:ring-primary-500 focus:outline-none text-neutral-900 dark:text-neutral-100"
-            />
-          </div>
+          <DatePicker
+            label="Fecha de compra"
+            value={purchaseDate}
+            onChange={setPurchaseDate}
+            maxDate={new Date().toISOString().split('T')[0]}
+            placeholder="Seleccionar fecha"
+          />
 
           <div>
             <label className="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-2">
@@ -542,19 +537,13 @@ export const PurchaseForm = () => {
               </div>
 
               {/* Expiration Date */}
-              <div>
-                <label className="block text-xs font-bold text-neutral-600 dark:text-neutral-400 mb-2 flex items-center gap-1">
-                  <Calendar size={14} />
-                  Fecha de caducidad (opcional)
-                </label>
-                <input
-                  type="date"
-                  value={expirationDate}
-                  onChange={(e) => setExpirationDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-3 bg-neutral-100 dark:bg-neutral-700 border-0 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none text-neutral-900 dark:text-neutral-100"
-                />
-              </div>
+              <DatePicker
+                label="Fecha de caducidad (opcional)"
+                value={expirationDate}
+                onChange={setExpirationDate}
+                minDate={new Date().toISOString().split('T')[0]}
+                placeholder="Seleccionar caducidad"
+              />
             </div>
           )}
         </div>

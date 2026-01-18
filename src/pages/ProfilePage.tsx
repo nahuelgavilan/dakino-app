@@ -1,6 +1,6 @@
 import { useAuthStore } from '@/store/authStore';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, User, Mail, Calendar, Package, ShoppingBag, Tag, Store, ChevronRight, Settings } from 'lucide-react';
+import { LogOut, User, Mail, Calendar, Package, ShoppingBag, Tag, Store, ChevronRight, Settings, ListChecks, History, BarChart3 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -87,6 +87,62 @@ export const ProfilePage = () => {
                   })}
                 </p>
               </div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="mb-6">
+            <h3 className="text-sm font-black text-neutral-700 uppercase tracking-wide mb-3">
+              Acceso Rápido
+            </h3>
+            <div className="space-y-2">
+              <button
+                onClick={() => navigate('/bundles')}
+                className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl hover:shadow-md transition-all active:scale-98 group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-100 rounded-lg">
+                    <ListChecks size={20} className="text-orange-600" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-neutral-900">Mis Listas</p>
+                    <p className="text-xs text-neutral-600">Listas de compra predefinidas</p>
+                  </div>
+                </div>
+                <ChevronRight size={20} className="text-neutral-400 group-hover:text-neutral-600 transition-colors" />
+              </button>
+
+              <button
+                onClick={() => navigate('/purchases')}
+                className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl hover:shadow-md transition-all active:scale-98 group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-pink-100 rounded-lg">
+                    <History size={20} className="text-pink-600" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-neutral-900">Historial de Compras</p>
+                    <p className="text-xs text-neutral-600">Ver todas tus compras</p>
+                  </div>
+                </div>
+                <ChevronRight size={20} className="text-neutral-400 group-hover:text-neutral-600 transition-colors" />
+              </button>
+
+              <button
+                onClick={() => navigate('/analytics')}
+                className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl hover:shadow-md transition-all active:scale-98 group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <BarChart3 size={20} className="text-purple-600" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-neutral-900">Estadísticas</p>
+                    <p className="text-xs text-neutral-600">Ver análisis de gastos</p>
+                  </div>
+                </div>
+                <ChevronRight size={20} className="text-neutral-400 group-hover:text-neutral-600 transition-colors" />
+              </button>
             </div>
           </div>
 
