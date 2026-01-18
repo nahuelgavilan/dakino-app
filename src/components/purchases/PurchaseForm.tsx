@@ -204,12 +204,16 @@ export const PurchaseForm = () => {
     setLoading(true);
 
     try {
+      // Ensure empty strings are converted to null for FK fields
+      const categoryId = formData.categoryId || null;
+      const storeId = formData.storeId || null;
+
       const purchase = await purchaseService.createPurchase({
         user_id: user.id,
         product_id: selectedProduct?.id || null,
         product_name: formData.productName,
-        category_id: formData.categoryId,
-        store_id: formData.storeId,
+        category_id: categoryId,
+        store_id: storeId,
         unit_type: unitType,
         quantity: unitType === 'unit' ? parseInt(formData.quantity) : null,
         weight: unitType === 'weight' ? parseFloat(formData.quantity) : null,
@@ -238,7 +242,7 @@ export const PurchaseForm = () => {
           user_id: user.id,
           product_id: selectedProduct?.id || null,
           product_name: formData.productName,
-          category_id: formData.categoryId || null,
+          category_id: categoryId,
           purchase_id: purchase.id,
           initial_quantity: quantity,
           current_quantity: quantity,
