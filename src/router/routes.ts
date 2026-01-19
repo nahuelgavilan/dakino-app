@@ -11,6 +11,7 @@ export const ROUTES = {
     // Compras
     PURCHASES: '/purchases',
     PURCHASES_NEW: '/purchases/new',
+    PURCHASES_SCAN: '/purchases/scan',
     PURCHASES_EDIT: '/purchases/:id',
     // Productos
     PRODUCTS: '/products',

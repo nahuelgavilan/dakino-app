@@ -9,6 +9,7 @@ import { InventoryPage } from '@/pages/InventoryPage';
 import { PurchasesPage } from '@/pages/purchases/PurchasesPage';
 import { PurchaseFormPage } from '@/pages/purchases/PurchaseFormPage';
 import { PurchaseEditPage } from '@/pages/purchases/PurchaseEditPage';
+import { TicketScannerPage } from '@/pages/purchases/TicketScannerPage';
 import { ProductsPage } from '@/pages/ProductsPage';
 import { BundlesPage } from '@/pages/BundlesPage';
 import { BundleFormPage } from '@/pages/BundleFormPage';
@@ -45,6 +46,14 @@ export const AppRouter = () => {
           element={
             <ProtectedRoute>
               <PurchaseEditPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={ROUTES.APP.PURCHASES_SCAN}
+          element={
+            <ProtectedRoute>
+              <TicketScannerPage />
             </ProtectedRoute>
           }
         />

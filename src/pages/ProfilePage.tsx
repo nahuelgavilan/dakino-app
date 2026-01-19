@@ -1,13 +1,15 @@
 import { useAuthStore } from '@/store/authStore';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, User, Mail, Calendar, Package, ShoppingBag, Tag, Store, ChevronRight, Settings, ListChecks, History, BarChart3 } from 'lucide-react';
+import { LogOut, User, Mail, Calendar, Package, ShoppingBag, Tag, Store, ChevronRight, Settings, ListChecks, History, BarChart3, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { HouseholdSection } from '@/components/household/HouseholdSection';
+import { usePWAUpdate } from '@/hooks/usePWAUpdate';
 
 export const ProfilePage = () => {
   const { user, profile, logout } = useAuthStore();
   const navigate = useNavigate();
+  const { forceUpdate } = usePWAUpdate();
 
   const handleLogout = async () => {
     await logout();
@@ -186,6 +188,22 @@ export const ProfilePage = () => {
                   <div className="text-left">
                     <p className="font-bold text-neutral-900">Mis Tiendas</p>
                     <p className="text-xs text-neutral-600">Gestionar supermercados y tiendas</p>
+                  </div>
+                </div>
+                <ChevronRight size={20} className="text-neutral-400 group-hover:text-neutral-600 transition-colors" />
+              </button>
+
+              <button
+                onClick={forceUpdate}
+                className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-neutral-50 to-slate-50 rounded-xl hover:shadow-md transition-all active:scale-98 group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-neutral-200 rounded-lg">
+                    <RefreshCw size={20} className="text-neutral-600" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-neutral-900">Buscar Actualizaciones</p>
+                    <p className="text-xs text-neutral-600">Verificar nueva versión de la app</p>
                   </div>
                 </div>
                 <ChevronRight size={20} className="text-neutral-400 group-hover:text-neutral-600 transition-colors" />

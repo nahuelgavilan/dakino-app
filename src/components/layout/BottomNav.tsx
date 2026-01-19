@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Package, Archive, User, Plus, ShoppingCart, ListChecks, X, PackagePlus } from 'lucide-react';
+import { Home, Package, Archive, User, Plus, ShoppingCart, ListChecks, X, PackagePlus, ScanLine } from 'lucide-react';
 import { ROUTES } from '@/router/routes';
 import { bundleService } from '@/services/bundle.service';
 import { useAuthStore } from '@/store/authStore';
@@ -98,6 +98,11 @@ export const BottomNav = () => {
     setShowCreateProduct(true);
   };
 
+  const handleScanTicket = () => {
+    setShowMenu(false);
+    navigate(ROUTES.APP.PURCHASES_SCAN);
+  };
+
   const handleProductCreated = () => {
     setShowCreateProduct(false);
   };
@@ -132,32 +137,46 @@ export const BottomNav = () => {
             {/* Options */}
             <div className="p-3">
               {/* Quick Actions Grid */}
-              <div className="grid grid-cols-2 gap-2 mb-2">
+              <div className="grid grid-cols-3 gap-2 mb-2">
                 {/* Quick Purchase */}
                 <button
                   onClick={handleQuickPurchase}
-                  className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-br from-primary-50 to-pink-50 dark:from-primary-900/20 dark:to-pink-900/20 hover:shadow-md transition-all text-center"
+                  className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-gradient-to-br from-primary-50 to-pink-50 dark:from-primary-900/20 dark:to-pink-900/20 hover:shadow-md transition-all text-center"
                 >
-                  <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
-                    <ShoppingCart size={22} className="text-white" />
+                  <div className="w-11 h-11 bg-gradient-to-br from-primary-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+                    <ShoppingCart size={20} className="text-white" />
                   </div>
                   <div>
-                    <p className="font-bold text-neutral-900 dark:text-neutral-100 text-sm">Compra Rápida</p>
-                    <p className="text-xs text-neutral-500">Un producto</p>
+                    <p className="font-bold text-neutral-900 dark:text-neutral-100 text-xs">Compra</p>
+                    <p className="text-[10px] text-neutral-500">Manual</p>
+                  </div>
+                </button>
+
+                {/* Scan Ticket */}
+                <button
+                  onClick={handleScanTicket}
+                  className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 hover:shadow-md transition-all text-center"
+                >
+                  <div className="w-11 h-11 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <ScanLine size={20} className="text-white" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-neutral-900 dark:text-neutral-100 text-xs">Escanear</p>
+                    <p className="text-[10px] text-neutral-500">Ticket IA</p>
                   </div>
                 </button>
 
                 {/* Create Product */}
                 <button
                   onClick={handleCreateProduct}
-                  className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 hover:shadow-md transition-all text-center"
+                  className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 hover:shadow-md transition-all text-center"
                 >
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg">
-                    <PackagePlus size={22} className="text-white" />
+                  <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg">
+                    <PackagePlus size={20} className="text-white" />
                   </div>
                   <div>
-                    <p className="font-bold text-neutral-900 dark:text-neutral-100 text-sm">Nuevo Producto</p>
-                    <p className="text-xs text-neutral-500">Al catálogo</p>
+                    <p className="font-bold text-neutral-900 dark:text-neutral-100 text-xs">Producto</p>
+                    <p className="text-[10px] text-neutral-500">Nuevo</p>
                   </div>
                 </button>
               </div>

@@ -31,6 +31,23 @@ interface ProductSelection {
   unitPrice: string;
 }
 
+// Interface for OCR data from ticket scanner
+interface OCRDataItem {
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+  matchedProduct?: Product | null;
+}
+
+interface OCRData {
+  items: OCRDataItem[];
+  purchaseDate?: string | null;
+  storeName?: string | null;
+  storeId?: string | null;
+  total?: number;
+}
+
 export const PurchaseForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -39,8 +56,15 @@ export const PurchaseForm = () => {
 
   // Get pre-selected product from navigation state (from ProductsPage quick buy)
   const preSelectedProduct = location.state?.product as Product | undefined;
+  // Get OCR data from ticket scanner
+  const ocrData = location.state?.ocrData as OCRData | undefined;
 
-  const [step, setStep] = useState<'product' | 'details'>(preSelectedProduct ? 'details' : 'product');
+  // Determine initial step based on navigation state
+  const hasPrefilledData = preSelectedProduct || ocrData;
+  const [step, setStep] = useState<'product' | 'details'>(hasPrefilledData ? 'details' : 'product');
+
+  // Track OCR items without matched products (for creating new products)
+  const [unmatchedOCRItems, setUnmatchedOCRItems] = useState<OCRDataItem[]>([]);
 
   // Multi-product selection state
   const [selectedProducts, setSelectedProducts] = useState<Map<string, ProductSelection>>(() => {
@@ -81,6 +105,62 @@ export const PurchaseForm = () => {
   useEffect(() => {
     loadInitialData();
   }, []);
+
+  // Process OCR data after products are loaded
+  useEffect(() => {
+    if (ocrData && products.length > 0 && selectedProducts.size === 0) {
+      processOCRData();
+    }
+  }, [ocrData, products]);
+
+  const processOCRData = () => {
+    if (!ocrData) return;
+
+    const map = new Map<string, ProductSelection>();
+    const unmatched: OCRDataItem[] = [];
+
+    ocrData.items.forEach((item) => {
+      if (item.matchedProduct) {
+        // Use the matched product
+        map.set(item.matchedProduct.id, {
+          product: item.matchedProduct,
+          quantity: item.quantity.toString(),
+          unitPrice: item.unitPrice.toString(),
+        });
+      } else {
+        // Try to find a matching product in our loaded products
+        const normalizedName = item.name.toLowerCase().trim();
+        const foundProduct = products.find(p =>
+          p.name.toLowerCase().includes(normalizedName) ||
+          normalizedName.includes(p.name.toLowerCase())
+        );
+
+        if (foundProduct) {
+          map.set(foundProduct.id, {
+            product: foundProduct,
+            quantity: item.quantity.toString(),
+            unitPrice: item.unitPrice.toString(),
+          });
+        } else {
+          // No match found - add to unmatched list
+          unmatched.push(item);
+        }
+      }
+    });
+
+    setSelectedProducts(map);
+    setUnmatchedOCRItems(unmatched);
+
+    // Set store if provided
+    if (ocrData.storeId) {
+      setStoreId(ocrData.storeId);
+    }
+
+    // Set date if provided
+    if (ocrData.purchaseDate) {
+      setPurchaseDate(ocrData.purchaseDate);
+    }
+  };
 
   const loadInitialData = async () => {
     if (!user) return;
@@ -156,6 +236,52 @@ export const PurchaseForm = () => {
   const handleProductCreated = () => {
     loadInitialData();
     setShowCreateProduct(false);
+  };
+
+  // Create product from unmatched OCR item and add to selection
+  const createProductFromOCRItem = async (item: OCRDataItem) => {
+    if (!user) return;
+
+    try {
+      const newProduct = await productService.createProduct({
+        user_id: user.id,
+        name: item.name,
+        category_id: null,
+        store_id: null,
+        unit_type: 'unit',
+        default_price: item.unitPrice,
+        default_unit: null,
+        image_url: null,
+      });
+
+      // Add to selected products
+      setSelectedProducts(prev => {
+        const newMap = new Map(prev);
+        newMap.set(newProduct.id, {
+          product: newProduct,
+          quantity: item.quantity.toString(),
+          unitPrice: item.unitPrice.toString(),
+        });
+        return newMap;
+      });
+
+      // Remove from unmatched
+      setUnmatchedOCRItems(prev => prev.filter(i => i.name !== item.name));
+
+      // Reload products
+      const updatedProducts = await productService.getProducts(user.id);
+      setProducts(updatedProducts);
+
+      success(`Producto "${item.name}" creado`);
+    } catch (err) {
+      console.error('Error creating product:', err);
+      showError('Error al crear el producto');
+    }
+  };
+
+  // Remove unmatched item (ignore it)
+  const removeUnmatchedItem = (item: OCRDataItem) => {
+    setUnmatchedOCRItems(prev => prev.filter(i => i.name !== item.name));
   };
 
   // Calculate total for single product
@@ -599,6 +725,55 @@ export const PurchaseForm = () => {
             );
           })}
         </div>
+
+        {/* Unmatched OCR Items - Products not found in catalog */}
+        {unmatchedOCRItems.length > 0 && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-4 border border-amber-200 dark:border-amber-800">
+            <div className="flex items-center gap-2 mb-3">
+              <Package size={18} className="text-amber-600" />
+              <h3 className="font-bold text-amber-800 dark:text-amber-200">
+                Productos no encontrados ({unmatchedOCRItems.length})
+              </h3>
+            </div>
+            <p className="text-sm text-amber-700 dark:text-amber-300 mb-4">
+              Estos productos del ticket no están en tu catálogo. Puedes crearlos o ignorarlos.
+            </p>
+            <div className="space-y-2">
+              {unmatchedOCRItems.map((item, index) => (
+                <div
+                  key={index}
+                  className="bg-white dark:bg-neutral-800 rounded-xl p-3 flex items-center justify-between"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-neutral-900 dark:text-white truncate">
+                      {item.name}
+                    </p>
+                    <p className="text-sm text-neutral-500">
+                      {item.quantity} × ${item.unitPrice.toFixed(2)} = ${item.total.toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 ml-3">
+                    <button
+                      type="button"
+                      onClick={() => createProductFromOCRItem(item)}
+                      className="px-3 py-1.5 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600 transition-colors flex items-center gap-1"
+                    >
+                      <Plus size={14} />
+                      Crear
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeUnmatchedItem(item)}
+                      className="p-1.5 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Grand Total */}
         {grandTotal > 0 && (
