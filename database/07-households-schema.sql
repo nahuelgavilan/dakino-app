@@ -221,59 +221,145 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ==============================================================================
--- FUNCIÓN: Unirse a hogar con código
+-- FUNCIÓN: Unirse a hogar con código (con fusión de duplicados)
 -- ==============================================================================
 
-CREATE OR REPLACE FUNCTION join_household_with_code(
-  p_user_id UUID,
-  p_invite_code TEXT
-)
+CREATE OR REPLACE FUNCTION join_household_with_code(p_user_id UUID, p_invite_code TEXT)
 RETURNS JSON AS $$
 DECLARE
   v_household_id UUID;
   v_household_name TEXT;
   v_old_household_id UUID;
+  v_duplicate RECORD;
+  v_merged_count INTEGER := 0;
 BEGIN
   -- Buscar hogar por código
   SELECT id, name INTO v_household_id, v_household_name
-  FROM households
-  WHERE invite_code = UPPER(TRIM(p_invite_code));
+  FROM households WHERE invite_code = UPPER(TRIM(p_invite_code));
 
   IF v_household_id IS NULL THEN
     RETURN json_build_object('success', false, 'error', 'Código de invitación inválido');
   END IF;
 
-  -- Obtener hogar anterior del usuario
   SELECT household_id INTO v_old_household_id FROM profiles WHERE id = p_user_id;
 
-  -- Si ya está en este hogar
   IF v_old_household_id = v_household_id THEN
     RETURN json_build_object('success', false, 'error', 'Ya perteneces a este hogar');
   END IF;
 
-  -- Migrar datos del usuario al nuevo hogar
-  UPDATE products SET household_id = v_household_id WHERE user_id = p_user_id;
+  -- ============================================
+  -- FUSIONAR PRODUCTOS DUPLICADOS
+  -- ============================================
+  FOR v_duplicate IN
+    SELECT
+      my_p.id as my_product_id,
+      their_p.id as their_product_id,
+      their_p.usage_count as their_usage
+    FROM products my_p
+    JOIN products their_p ON LOWER(TRIM(my_p.name)) = LOWER(TRIM(their_p.name))
+    WHERE my_p.user_id = p_user_id
+      AND their_p.household_id = v_household_id
+      AND my_p.id != their_p.id
+  LOOP
+    -- Actualizar referencias al producto que se va a eliminar
+    UPDATE purchases SET product_id = v_duplicate.their_product_id
+    WHERE product_id = v_duplicate.my_product_id;
+
+    UPDATE inventory_items SET product_id = v_duplicate.their_product_id
+    WHERE product_id = v_duplicate.my_product_id;
+
+    UPDATE bundle_items SET product_id = v_duplicate.their_product_id
+    WHERE product_id = v_duplicate.my_product_id;
+
+    -- Combinar usage_count
+    UPDATE products SET usage_count = usage_count + COALESCE(v_duplicate.their_usage, 0)
+    WHERE id = v_duplicate.their_product_id;
+
+    -- Eliminar el producto duplicado
+    DELETE FROM products WHERE id = v_duplicate.my_product_id;
+
+    v_merged_count := v_merged_count + 1;
+  END LOOP;
+
+  -- ============================================
+  -- FUSIONAR CATEGORÍAS DUPLICADAS
+  -- ============================================
+  FOR v_duplicate IN
+    SELECT
+      my_c.id as my_cat_id,
+      their_c.id as their_cat_id
+    FROM categories my_c
+    JOIN categories their_c ON LOWER(TRIM(my_c.name)) = LOWER(TRIM(their_c.name))
+    WHERE my_c.user_id = p_user_id
+      AND their_c.household_id = v_household_id
+      AND my_c.id != their_c.id
+      AND my_c.is_default = FALSE
+  LOOP
+    UPDATE products SET category_id = v_duplicate.their_cat_id
+    WHERE category_id = v_duplicate.my_cat_id;
+
+    UPDATE purchases SET category_id = v_duplicate.their_cat_id
+    WHERE category_id = v_duplicate.my_cat_id;
+
+    UPDATE inventory_items SET category_id = v_duplicate.their_cat_id
+    WHERE category_id = v_duplicate.my_cat_id;
+
+    UPDATE bundle_items SET category_id = v_duplicate.their_cat_id
+    WHERE category_id = v_duplicate.my_cat_id;
+
+    DELETE FROM categories WHERE id = v_duplicate.my_cat_id;
+  END LOOP;
+
+  -- ============================================
+  -- FUSIONAR TIENDAS DUPLICADAS
+  -- ============================================
+  FOR v_duplicate IN
+    SELECT
+      my_s.id as my_store_id,
+      their_s.id as their_store_id
+    FROM stores my_s
+    JOIN stores their_s ON LOWER(TRIM(my_s.name)) = LOWER(TRIM(their_s.name))
+    WHERE my_s.user_id = p_user_id
+      AND their_s.household_id = v_household_id
+      AND my_s.id != their_s.id
+  LOOP
+    UPDATE products SET store_id = v_duplicate.their_store_id
+    WHERE store_id = v_duplicate.my_store_id;
+
+    UPDATE purchases SET store_id = v_duplicate.their_store_id
+    WHERE store_id = v_duplicate.my_store_id;
+
+    UPDATE bundle_items SET store_id = v_duplicate.their_store_id
+    WHERE store_id = v_duplicate.my_store_id;
+
+    DELETE FROM stores WHERE id = v_duplicate.my_store_id;
+  END LOOP;
+
+  -- ============================================
+  -- MIGRAR DATOS RESTANTES (no duplicados)
+  -- ============================================
+  UPDATE products SET household_id = v_household_id WHERE user_id = p_user_id AND household_id != v_household_id;
   UPDATE purchases SET household_id = v_household_id WHERE user_id = p_user_id;
-  UPDATE categories SET household_id = v_household_id WHERE user_id = p_user_id;
+  UPDATE categories SET household_id = v_household_id WHERE user_id = p_user_id AND is_default = FALSE;
   UPDATE stores SET household_id = v_household_id WHERE user_id = p_user_id;
   UPDATE bundles SET household_id = v_household_id WHERE user_id = p_user_id;
   UPDATE inventory_items SET household_id = v_household_id WHERE user_id = p_user_id;
   UPDATE storage_locations SET household_id = v_household_id WHERE user_id = p_user_id AND is_default = FALSE;
 
-  -- Actualizar perfil del usuario
+  -- Actualizar perfil
   UPDATE profiles SET household_id = v_household_id WHERE id = p_user_id;
 
-  -- Eliminar hogar anterior si estaba vacío
+  -- Eliminar hogar anterior si quedó vacío
   IF v_old_household_id IS NOT NULL THEN
-    DELETE FROM households
-    WHERE id = v_old_household_id
+    DELETE FROM households WHERE id = v_old_household_id
     AND NOT EXISTS (SELECT 1 FROM profiles WHERE household_id = v_old_household_id);
   END IF;
 
   RETURN json_build_object(
     'success', true,
     'household_id', v_household_id,
-    'household_name', v_household_name
+    'household_name', v_household_name,
+    'merged_products', v_merged_count
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
