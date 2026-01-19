@@ -63,17 +63,22 @@ export const ocrService = {
    * Scan a ticket image and extract purchase data
    */
   async scanTicket(imageBase64: string): Promise<OCRResult> {
+    console.log('Calling scan-ticket function, image size:', imageBase64.length);
+
     const { data, error } = await supabase.functions.invoke('scan-ticket', {
       body: { image: imageBase64 }
     });
 
+    console.log('Response:', { data, error });
+
     if (error) {
-      console.error('OCR error:', error);
-      throw new Error('Error al procesar el ticket');
+      console.error('OCR invoke error:', error);
+      throw new Error(`Error al invocar función: ${error.message || JSON.stringify(error)}`);
     }
 
-    if (data.error) {
-      throw new Error(data.error);
+    if (data?.error) {
+      console.error('OCR data error:', data);
+      throw new Error(`Error del servidor: ${data.error}${data.details ? ' - ' + data.details : ''}`);
     }
 
     return data as OCRResult;
