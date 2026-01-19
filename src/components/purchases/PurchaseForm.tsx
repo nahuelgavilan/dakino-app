@@ -21,7 +21,9 @@ import {
   MapPin,
   Check,
   Trash2,
-  ShoppingCart
+  ShoppingCart,
+  Gift,
+  ShoppingBag
 } from 'lucide-react';
 
 // Interface for product details in multi-selection
@@ -46,6 +48,7 @@ interface OCRData {
   storeName?: string | null;
   storeId?: string | null;
   total?: number;
+  purchaseType?: 'compra' | 'dakino';
 }
 
 export const PurchaseForm = () => {
@@ -93,6 +96,7 @@ export const PurchaseForm = () => {
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
   const [storeId, setStoreId] = useState('');
   const [notes, setNotes] = useState('');
+  const [purchaseType, setPurchaseType] = useState<'compra' | 'dakino'>('compra');
 
   // Inventory state
   const [addToInventory, setAddToInventory] = useState(true);
@@ -159,6 +163,11 @@ export const PurchaseForm = () => {
     // Set date if provided
     if (ocrData.purchaseDate) {
       setPurchaseDate(ocrData.purchaseDate);
+    }
+
+    // Set purchase type if provided
+    if (ocrData.purchaseType) {
+      setPurchaseType(ocrData.purchaseType);
     }
   };
 
@@ -347,6 +356,7 @@ export const PurchaseForm = () => {
           category_id: product.category_id || null,
           store_id: storeId || null,
           unit_type: product.unit_type,
+          type: purchaseType,
           quantity: product.unit_type === 'unit' ? parseInt(quantity) : null,
           weight: product.unit_type === 'weight' ? parseFloat(quantity) : null,
           unit_price: product.unit_type === 'unit' ? price : null,
@@ -391,9 +401,11 @@ export const PurchaseForm = () => {
       await Promise.all(purchasePromises);
 
       const count = selectedProducts.size;
+      const typeLabel = purchaseType === 'dakino' ? 'Dakino' : 'Compra';
+      const typeLabelPlural = purchaseType === 'dakino' ? 'dakinos' : 'compras';
       const message = count === 1
-        ? (addToInventory ? '✨ Compra registrada y añadida al inventario' : '✨ Compra registrada')
-        : (addToInventory ? `✨ ${count} compras registradas y añadidas al inventario` : `✨ ${count} compras registradas`);
+        ? (addToInventory ? `✨ ${typeLabel} registrad${purchaseType === 'dakino' ? 'o' : 'a'} y añadid${purchaseType === 'dakino' ? 'o' : 'a'} al inventario` : `✨ ${typeLabel} registrad${purchaseType === 'dakino' ? 'o' : 'a'}`)
+        : (addToInventory ? `✨ ${count} ${typeLabelPlural} registrad${purchaseType === 'dakino' ? 'os' : 'as'} y añadid${purchaseType === 'dakino' ? 'os' : 'as'} al inventario` : `✨ ${count} ${typeLabelPlural} registrad${purchaseType === 'dakino' ? 'os' : 'as'}`);
 
       success(message);
       navigate('/');
@@ -640,6 +652,74 @@ export const PurchaseForm = () => {
         >
           ← Agregar más productos
         </button>
+
+        {/* Purchase Type Selector */}
+        <div className="bg-white dark:bg-neutral-800 rounded-2xl p-4 shadow-sm">
+          <label className="block text-sm font-bold text-neutral-700 dark:text-neutral-300 mb-3">
+            Tipo de adquisición
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setPurchaseType('compra')}
+              className={`p-4 rounded-xl flex flex-col items-center gap-2 transition-all ${
+                purchaseType === 'compra'
+                  ? 'bg-primary-100 dark:bg-primary-900/30 ring-2 ring-primary-500'
+                  : 'bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600'
+              }`}
+            >
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                purchaseType === 'compra'
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-neutral-200 dark:bg-neutral-600 text-neutral-500 dark:text-neutral-400'
+              }`}>
+                <ShoppingBag size={24} />
+              </div>
+              <div className="text-center">
+                <p className={`font-bold ${
+                  purchaseType === 'compra'
+                    ? 'text-primary-700 dark:text-primary-300'
+                    : 'text-neutral-700 dark:text-neutral-300'
+                }`}>
+                  Compra
+                </p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                  Pagué con mi dinero
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPurchaseType('dakino')}
+              className={`p-4 rounded-xl flex flex-col items-center gap-2 transition-all ${
+                purchaseType === 'dakino'
+                  ? 'bg-emerald-100 dark:bg-emerald-900/30 ring-2 ring-emerald-500'
+                  : 'bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600'
+              }`}
+            >
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                purchaseType === 'dakino'
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-neutral-200 dark:bg-neutral-600 text-neutral-500 dark:text-neutral-400'
+              }`}>
+                <Gift size={24} />
+              </div>
+              <div className="text-center">
+                <p className={`font-bold ${
+                  purchaseType === 'dakino'
+                    ? 'text-emerald-700 dark:text-emerald-300'
+                    : 'text-neutral-700 dark:text-neutral-300'
+                }`}>
+                  Dakino
+                </p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                  Me lo regalaron
+                </p>
+              </div>
+            </button>
+          </div>
+        </div>
 
         {/* Selected Products List */}
         <div className="space-y-3">

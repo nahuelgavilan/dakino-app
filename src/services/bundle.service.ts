@@ -150,6 +150,7 @@ export class BundleService {
         category_id: item.category_id,
         store_id: item.store_id,
         unit_type: item.unit_type,
+        type: 'compra',
         quantity: item.unit_type === 'unit' ? Math.round(quantity || 0) : null,
         weight: item.unit_type === 'weight' ? weight : null,
         unit_price: item.unit_type === 'unit' ? price : null,

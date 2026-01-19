@@ -101,6 +101,7 @@ export interface Purchase {
   weight: number | null;
   price_per_unit: number | null;
   unit_type: UnitType;
+  type: 'compra' | 'dakino';
   total_price: number;
   purchase_date: string;
   notes: string | null;

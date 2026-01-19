@@ -11,7 +11,9 @@ import {
   Trash2,
   ArrowLeft,
   RotateCcw,
-  Sparkles
+  Sparkles,
+  ShoppingBag,
+  Gift
 } from 'lucide-react';
 import { ocrService, type MatchedOCRItem, type ProcessedOCRResult } from '@/services/ocr.service';
 import { productService } from '@/services/product.service';
@@ -36,6 +38,7 @@ export const TicketScannerPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [purchaseType, setPurchaseType] = useState<'compra' | 'dakino'>('compra');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -208,7 +211,8 @@ export const TicketScannerPage = () => {
           purchaseDate: ocrResult.date,
           storeName: ocrResult.store_name,
           storeId: matchedStore?.id,
-          total: ocrResult.total
+          total: ocrResult.total,
+          purchaseType: purchaseType
         }
       }
     });
@@ -559,13 +563,81 @@ export const TicketScannerPage = () => {
               </div>
             </div>
 
+            {/* Purchase Type Selector */}
+            <div className="bg-white dark:bg-neutral-800 rounded-3xl shadow-xl p-5">
+              <h3 className="font-bold text-neutral-900 dark:text-white mb-3">
+                Tipo de adquisición
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPurchaseType('compra')}
+                  className={`p-4 rounded-xl flex flex-col items-center gap-2 transition-all ${
+                    purchaseType === 'compra'
+                      ? 'bg-primary-100 dark:bg-primary-900/30 ring-2 ring-primary-500'
+                      : 'bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600'
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    purchaseType === 'compra'
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-neutral-200 dark:bg-neutral-600 text-neutral-500 dark:text-neutral-400'
+                  }`}>
+                    <ShoppingBag size={20} />
+                  </div>
+                  <div className="text-center">
+                    <p className={`font-bold text-sm ${
+                      purchaseType === 'compra'
+                        ? 'text-primary-700 dark:text-primary-300'
+                        : 'text-neutral-700 dark:text-neutral-300'
+                    }`}>
+                      Compra
+                    </p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                      Pagué con mi dinero
+                    </p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPurchaseType('dakino')}
+                  className={`p-4 rounded-xl flex flex-col items-center gap-2 transition-all ${
+                    purchaseType === 'dakino'
+                      ? 'bg-emerald-100 dark:bg-emerald-900/30 ring-2 ring-emerald-500'
+                      : 'bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600'
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    purchaseType === 'dakino'
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-neutral-200 dark:bg-neutral-600 text-neutral-500 dark:text-neutral-400'
+                  }`}>
+                    <Gift size={20} />
+                  </div>
+                  <div className="text-center">
+                    <p className={`font-bold text-sm ${
+                      purchaseType === 'dakino'
+                        ? 'text-emerald-700 dark:text-emerald-300'
+                        : 'text-neutral-700 dark:text-neutral-300'
+                    }`}>
+                      Dakino
+                    </p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                      Me lo regalaron
+                    </p>
+                  </div>
+                </button>
+              </div>
+            </div>
+
             {/* Continue Button */}
             <button
               onClick={continueToForm}
               disabled={selectedItems.size === 0}
               className="w-full py-4 bg-gradient-to-r from-violet-500 to-purple-600 rounded-2xl font-bold text-white shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Continuar con {selectedItems.size} productos
+              Continuar con {selectedItems.size} {purchaseType === 'dakino' ? 'dakinos' : 'compras'}
               <ChevronRight size={20} />
             </button>
           </div>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { statisticsService } from '@/services/statistics.service';
-import type { CategoryStats } from '@/services/statistics.service';
+import type { CategoryStats, TypeStats } from '@/services/statistics.service';
 import { Spinner } from '@/components/common/Spinner';
 import {
   BarChart,
@@ -15,7 +15,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-import { TrendingUp, PieChart as PieChartIcon, BarChart3, Calendar } from 'lucide-react';
+import { TrendingUp, PieChart as PieChartIcon, BarChart3, Calendar, ShoppingBag, Gift, Sparkles } from 'lucide-react';
 
 const COLORS = ['#FF1744', '#0EA5E9', '#F59E0B', '#10B981', '#9333EA', '#EC4899', '#3B82F6', '#6366F1'];
 
@@ -23,6 +23,7 @@ export const AnalyticsPage = () => {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [categoryStats, setCategoryStats] = useState<CategoryStats[]>([]);
+  const [typeStats, setTypeStats] = useState<TypeStats | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('month');
 
   useEffect(() => {
@@ -48,8 +49,12 @@ export const AnalyticsPage = () => {
         startDate.setFullYear(endDate.getFullYear() - 1);
       }
 
-      const stats = await statisticsService.getCategoryStats(user.id, startDate, endDate);
+      const [stats, types] = await Promise.all([
+        statisticsService.getCategoryStats(user.id, startDate, endDate),
+        statisticsService.getTypeStats(user.id, startDate, endDate)
+      ]);
       setCategoryStats(stats);
+      setTypeStats(types);
     } catch (error) {
       console.error('Error loading analytics:', error);
     } finally {
@@ -114,6 +119,104 @@ export const AnalyticsPage = () => {
             ))}
           </div>
         </div>
+
+        {/* Compra vs Dakino Stats */}
+        {typeStats && (typeStats.compras.count > 0 || typeStats.dakinos.count > 0) && (
+          <div className="bg-white rounded-3xl shadow-lg p-6 mb-6">
+            <div className="flex items-center gap-2 mb-6">
+              <Sparkles size={24} className="text-emerald-500" />
+              <h2 className="text-2xl font-black text-neutral-900">
+                Compras vs Dakinos
+              </h2>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              {/* Compras Card */}
+              <div className="bg-gradient-to-br from-primary-50 to-rose-50 dark:from-primary-900/20 dark:to-rose-900/20 rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-10 h-10 bg-primary-500 rounded-xl flex items-center justify-center">
+                    <ShoppingBag size={20} className="text-white" />
+                  </div>
+                  <span className="font-bold text-neutral-700 dark:text-neutral-300">Compras</span>
+                </div>
+                <p className="text-3xl font-black text-primary-600">
+                  ${typeStats.compras.total.toFixed(2)}
+                </p>
+                <p className="text-sm text-neutral-500 mt-1">
+                  {typeStats.compras.count} {typeStats.compras.count === 1 ? 'compra' : 'compras'}
+                </p>
+              </div>
+
+              {/* Dakinos Card */}
+              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center">
+                    <Gift size={20} className="text-white" />
+                  </div>
+                  <span className="font-bold text-neutral-700 dark:text-neutral-300">Dakinos</span>
+                </div>
+                <p className="text-3xl font-black text-emerald-600">
+                  ${typeStats.dakinos.total.toFixed(2)}
+                </p>
+                <p className="text-sm text-neutral-500 mt-1">
+                  {typeStats.dakinos.count} {typeStats.dakinos.count === 1 ? 'regalo' : 'regalos'}
+                </p>
+              </div>
+            </div>
+
+            {/* Savings Summary */}
+            {typeStats.dakinos.total > 0 && (
+              <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-5 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-emerald-100 text-sm font-medium">Te has ahorrado</p>
+                    <p className="text-4xl font-black">${typeStats.dakinos.total.toFixed(2)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-emerald-100 text-sm font-medium">Del valor total</p>
+                    <p className="text-3xl font-black">{typeStats.savingsPercentage.toFixed(1)}%</p>
+                  </div>
+                </div>
+                <div className="mt-4 bg-white/20 rounded-full h-3 overflow-hidden">
+                  <div
+                    className="h-full bg-white rounded-full transition-all duration-500"
+                    style={{ width: `${typeStats.savingsPercentage}%` }}
+                  />
+                </div>
+                <div className="flex justify-between mt-2 text-xs text-emerald-100">
+                  <span>Gastado: ${typeStats.compras.total.toFixed(2)}</span>
+                  <span>Regalado: ${typeStats.dakinos.total.toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Type Distribution */}
+            <div className="mt-6">
+              <h3 className="font-bold text-neutral-700 mb-3">Distribución</h3>
+              <div className="flex gap-2">
+                <div
+                  className="h-4 bg-primary-500 rounded-full transition-all duration-500"
+                  style={{ width: `${typeStats.totalValue > 0 ? (typeStats.compras.total / typeStats.totalValue) * 100 : 0}%` }}
+                />
+                <div
+                  className="h-4 bg-emerald-500 rounded-full transition-all duration-500"
+                  style={{ width: `${typeStats.totalValue > 0 ? (typeStats.dakinos.total / typeStats.totalValue) * 100 : 0}%` }}
+                />
+              </div>
+              <div className="flex justify-between mt-2 text-xs text-neutral-500">
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 bg-primary-500 rounded-full"></span>
+                  Compras ({typeStats.totalValue > 0 ? ((typeStats.compras.total / typeStats.totalValue) * 100).toFixed(0) : 0}%)
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                  Dakinos ({typeStats.totalValue > 0 ? ((typeStats.dakinos.total / typeStats.totalValue) * 100).toFixed(0) : 0}%)
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {categoryStats.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-3xl">

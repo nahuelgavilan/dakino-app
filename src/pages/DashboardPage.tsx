@@ -3,11 +3,12 @@ import { useAuthStore } from '@/store/authStore';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { RecentPurchases } from '@/components/dashboard/RecentPurchases';
 import { statisticsService } from '@/services/statistics.service';
+import type { TypeStats } from '@/services/statistics.service';
 import { purchaseService } from '@/services/purchase.service';
 import { inventoryService } from '@/services/inventory.service';
 import type { Purchase, InventoryItem } from '@/types/models';
 import { Spinner } from '@/components/common/Spinner';
-import { Plus, AlertTriangle, Clock, Package, ChevronRight } from 'lucide-react';
+import { Plus, AlertTriangle, Clock, Package, ChevronRight, Gift } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/router/routes';
 
@@ -24,6 +25,7 @@ export const DashboardPage = () => {
   const [recentPurchases, setRecentPurchases] = useState<Purchase[]>([]);
   const [expiringItems, setExpiringItems] = useState<InventoryItem[]>([]);
   const [lowStockItems, setLowStockItems] = useState<InventoryItem[]>([]);
+  const [monthTypeStats, setMonthTypeStats] = useState<TypeStats | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -37,14 +39,20 @@ export const DashboardPage = () => {
     try {
       setLoading(true);
 
+      // Calculate month range for type stats
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setMonth(endDate.getMonth() - 1);
+
       // Load stats in parallel
-      const [todayStats, weekStats, monthStats, purchases, expiring, lowStock] = await Promise.all([
+      const [todayStats, weekStats, monthStats, purchases, expiring, lowStock, typeStats] = await Promise.all([
         statisticsService.getDayStats(user.id),
         statisticsService.getWeekStats(user.id),
         statisticsService.getMonthStats(user.id),
         purchaseService.getRecentPurchases(user.id, 5),
         inventoryService.getExpiringItems(user.id, 7),
         inventoryService.getLowStockItems(user.id),
+        statisticsService.getTypeStats(user.id, startDate, endDate),
       ]);
 
       setStats({
@@ -57,6 +65,7 @@ export const DashboardPage = () => {
       setRecentPurchases(purchases);
       setExpiringItems(expiring);
       setLowStockItems(lowStock);
+      setMonthTypeStats(typeStats);
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {
@@ -133,6 +142,35 @@ export const DashboardPage = () => {
               <span className="font-black text-2xl text-primary-500">{stats.todayCount}</span>{' '}
               {stats.todayCount === 1 ? 'compra' : 'compras'} hoy
             </p>
+          </div>
+        )}
+
+        {/* Dakino Savings Card */}
+        {monthTypeStats && monthTypeStats.dakinos.total > 0 && (
+          <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-3xl p-6 shadow-lg text-white">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                <Gift size={24} className="text-white" />
+              </div>
+              <div>
+                <p className="text-emerald-100 text-sm font-medium">Este mes te has ahorrado</p>
+                <p className="text-3xl font-black">${monthTypeStats.dakinos.total.toFixed(2)}</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-emerald-100">
+                {monthTypeStats.dakinos.count} {monthTypeStats.dakinos.count === 1 ? 'dakino recibido' : 'dakinos recibidos'}
+              </span>
+              <span className="font-bold">
+                {monthTypeStats.savingsPercentage.toFixed(0)}% del valor total
+              </span>
+            </div>
+            <div className="mt-3 bg-white/20 rounded-full h-2 overflow-hidden">
+              <div
+                className="h-full bg-white rounded-full"
+                style={{ width: `${monthTypeStats.savingsPercentage}%` }}
+              />
+            </div>
           </div>
         )}
 

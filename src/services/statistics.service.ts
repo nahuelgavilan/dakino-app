@@ -7,6 +7,13 @@ export interface PeriodStats {
   average: number;
 }
 
+export interface TypeStats {
+  compras: { total: number; count: number };
+  dakinos: { total: number; count: number };
+  totalValue: number;
+  savingsPercentage: number;
+}
+
 export interface CategoryStats {
   category_id: string | null;
   category_name: string;
@@ -146,6 +153,55 @@ export class StatisticsService {
     stats.sort((a, b) => b.total - a.total);
 
     return stats;
+  }
+
+  async getTypeStats(
+    userId: string,
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<TypeStats> {
+    let query = supabase
+      .from('purchases')
+      .select('total_price, type')
+      .eq('user_id', userId);
+
+    if (startDate) {
+      query = query.gte('purchase_date', startDate.toISOString().split('T')[0]);
+    }
+
+    if (endDate) {
+      query = query.lte('purchase_date', endDate.toISOString().split('T')[0]);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    const compras = { total: 0, count: 0 };
+    const dakinos = { total: 0, count: 0 };
+
+    data.forEach((purchase: any) => {
+      const total_price = Number(purchase.total_price);
+      const type = purchase.type || 'compra'; // Default to compra for legacy data
+
+      if (type === 'dakino') {
+        dakinos.total += total_price;
+        dakinos.count += 1;
+      } else {
+        compras.total += total_price;
+        compras.count += 1;
+      }
+    });
+
+    const totalValue = compras.total + dakinos.total;
+    const savingsPercentage = totalValue > 0 ? (dakinos.total / totalValue) * 100 : 0;
+
+    return {
+      compras,
+      dakinos,
+      totalValue,
+      savingsPercentage
+    };
   }
 
   async getTopProducts(userId: string, limit = 5): Promise<Array<{
