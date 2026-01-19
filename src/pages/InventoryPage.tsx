@@ -10,13 +10,17 @@ import {
   Minus,
   Trash2,
   MapPin,
+  ShoppingCart,
+  ListPlus,
+  Sparkles,
 } from 'lucide-react';
 import { ROUTES } from '@/router/routes';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/hooks/useToast';
 import { inventoryService } from '@/services/inventory.service';
+import { bundleService } from '@/services/bundle.service';
 import { Modal } from '@/components/common/Modal';
-import type { InventoryItem, StorageLocation, InventoryStatus } from '@/types/models';
+import type { InventoryItem, StorageLocation, InventoryStatus, Bundle } from '@/types/models';
 
 type FilterStatus = 'all' | InventoryStatus;
 
@@ -45,6 +49,18 @@ export const InventoryPage = () => {
     isOpen: boolean;
     item: InventoryItem | null;
   }>({ isOpen: false, item: null });
+
+  // Add to list modal
+  const [addToListModal, setAddToListModal] = useState<{
+    isOpen: boolean;
+    item: InventoryItem | null;
+  }>({ isOpen: false, item: null });
+  const [bundles, setBundles] = useState<Bundle[]>([]);
+  const [loadingBundles, setLoadingBundles] = useState(false);
+  const [creatingBundle, setCreatingBundle] = useState(false);
+
+  // Clear empty items modal
+  const [clearEmptyModal, setClearEmptyModal] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -119,6 +135,110 @@ export const InventoryPage = () => {
       showError('Error al eliminar');
     }
   };
+
+  // Load bundles when opening add to list modal
+  const openAddToListModal = async (item: InventoryItem) => {
+    setAddToListModal({ isOpen: true, item });
+    if (!user) return;
+
+    try {
+      setLoadingBundles(true);
+      const data = await bundleService.getBundles(user.id);
+      setBundles(data);
+    } catch (error) {
+      console.error('Error loading bundles:', error);
+    } finally {
+      setLoadingBundles(false);
+    }
+  };
+
+  // Add item to existing bundle
+  const handleAddToBundle = async (bundleId: string) => {
+    if (!addToListModal.item) return;
+    const item = addToListModal.item;
+
+    try {
+      await bundleService.addItemToBundle({
+        bundle_id: bundleId,
+        product_id: item.product_id,
+        product_name: item.product_name,
+        category_id: item.category_id,
+        store_id: null,
+        unit_type: item.unit === 'unidades' ? 'unit' : 'weight',
+        quantity: item.unit === 'unidades' ? 1 : null,
+        weight: item.unit !== 'unidades' ? 1 : null,
+        estimated_price: null,
+        notes: null,
+      });
+      showSuccess(`${item.product_name} añadido a la lista`);
+      setAddToListModal({ isOpen: false, item: null });
+    } catch (error) {
+      console.error('Error adding to bundle:', error);
+      showError('Error al añadir a la lista');
+    }
+  };
+
+  // Create new shopping list bundle and add item
+  const handleCreateShoppingList = async () => {
+    if (!user || !addToListModal.item) return;
+    const item = addToListModal.item;
+
+    try {
+      setCreatingBundle(true);
+
+      // Create a new shopping list bundle
+      const newBundle = await bundleService.createBundle({
+        user_id: user.id,
+        name: 'Lista de Compras',
+        description: 'Productos que necesito comprar',
+        icon: '🛒',
+        color: '#FF1744',
+        is_favorite: true,
+      });
+
+      // Add the item to the new bundle
+      await bundleService.addItemToBundle({
+        bundle_id: newBundle.id,
+        product_id: item.product_id,
+        product_name: item.product_name,
+        category_id: item.category_id,
+        store_id: null,
+        unit_type: item.unit === 'unidades' ? 'unit' : 'weight',
+        quantity: item.unit === 'unidades' ? 1 : null,
+        weight: item.unit !== 'unidades' ? 1 : null,
+        estimated_price: null,
+        notes: null,
+      });
+
+      showSuccess('Lista de Compras creada con ' + item.product_name);
+      setAddToListModal({ isOpen: false, item: null });
+    } catch (error) {
+      console.error('Error creating shopping list:', error);
+      showError('Error al crear la lista');
+    } finally {
+      setCreatingBundle(false);
+    }
+  };
+
+  // Clear all empty items
+  const handleClearEmptyItems = async () => {
+    const emptyItems = items.filter((i) => i.status === 'empty');
+    if (emptyItems.length === 0) return;
+
+    try {
+      await Promise.all(
+        emptyItems.map((item) => inventoryService.deleteInventoryItem(item.id))
+      );
+      showSuccess(`${emptyItems.length} items vacíos eliminados`);
+      setClearEmptyModal(false);
+      loadData();
+    } catch (error) {
+      console.error('Error clearing empty items:', error);
+      showError('Error al limpiar items vacíos');
+    }
+  };
+
+  const emptyItemsCount = items.filter((i) => i.status === 'empty').length;
 
   const getStatusColor = (status: InventoryStatus) => {
     switch (status) {
@@ -198,12 +318,23 @@ export const InventoryPage = () => {
                 {items.filter((i) => i.status !== 'empty').length} items en casa
               </p>
             </div>
-            <button
-              onClick={() => navigate(ROUTES.APP.PURCHASES_NEW)}
-              className="w-10 h-10 bg-primary-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary-500/25"
-            >
-              <Plus size={22} />
-            </button>
+            <div className="flex items-center gap-2">
+              {emptyItemsCount > 0 && (
+                <button
+                  onClick={() => setClearEmptyModal(true)}
+                  className="px-3 py-2 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center gap-2 text-red-600 dark:text-red-400 text-sm font-medium"
+                >
+                  <Sparkles size={16} />
+                  Limpiar ({emptyItemsCount})
+                </button>
+              )}
+              <button
+                onClick={() => navigate(ROUTES.APP.PURCHASES_NEW)}
+                className="w-10 h-10 bg-primary-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary-500/25"
+              >
+                <Plus size={22} />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -386,7 +517,7 @@ export const InventoryPage = () => {
                     </div>
 
                     {/* Actions */}
-                    {item.status !== 'empty' && (
+                    {item.status !== 'empty' ? (
                       <div className="flex gap-2 mt-3">
                         <button
                           onClick={() =>
@@ -409,6 +540,23 @@ export const InventoryPage = () => {
                           className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
                         >
                           <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          onClick={() => openAddToListModal(item)}
+                          className="flex-1 flex items-center justify-center gap-2 py-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors"
+                        >
+                          <ShoppingCart size={16} />
+                          Añadir a lista
+                        </button>
+                        <button
+                          onClick={() => setDeleteModal({ isOpen: true, item })}
+                          className="flex-1 flex items-center justify-center gap-2 py-2 bg-red-100 dark:bg-red-900/30 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                        >
+                          <Trash2 size={16} />
+                          Eliminar
                         </button>
                       </div>
                     )}
@@ -516,6 +664,118 @@ export const InventoryPage = () => {
               className="flex-1 py-3 bg-red-500 rounded-xl font-medium text-white"
             >
               Eliminar
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Add to List Modal */}
+      <Modal
+        isOpen={addToListModal.isOpen}
+        onClose={() => setAddToListModal({ isOpen: false, item: null })}
+        title="Añadir a lista de compras"
+      >
+        <div className="space-y-4">
+          <p className="text-neutral-600 dark:text-neutral-400 text-sm">
+            Añadir <strong>{addToListModal.item?.product_name}</strong> a una lista para comprarlo después
+          </p>
+
+          {loadingBundles ? (
+            <div className="flex justify-center py-6">
+              <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : bundles.length === 0 ? (
+            <div className="text-center py-4">
+              <ListPlus className="mx-auto text-neutral-300 dark:text-neutral-600 mb-2" size={40} />
+              <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-4">
+                No tienes listas creadas
+              </p>
+              <button
+                onClick={handleCreateShoppingList}
+                disabled={creatingBundle}
+                className="w-full py-3 bg-primary-500 text-white rounded-xl font-medium flex items-center justify-center gap-2"
+              >
+                {creatingBundle ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <ShoppingCart size={18} />
+                    Crear Lista de Compras
+                  </>
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {bundles.map((bundle) => (
+                <button
+                  key={bundle.id}
+                  onClick={() => handleAddToBundle(bundle.id)}
+                  className="w-full flex items-center gap-3 p-3 bg-neutral-50 dark:bg-neutral-700/50 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors text-left"
+                >
+                  <div
+                    className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
+                    style={{ backgroundColor: bundle.color + '20' }}
+                  >
+                    {bundle.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-neutral-900 dark:text-neutral-100 truncate">
+                      {bundle.name}
+                    </p>
+                    <p className="text-xs text-neutral-500">
+                      {bundle.items?.length || 0} productos
+                    </p>
+                  </div>
+                  <Plus size={18} className="text-primary-500" />
+                </button>
+              ))}
+
+              <button
+                onClick={handleCreateShoppingList}
+                disabled={creatingBundle}
+                className="w-full py-3 mt-2 bg-neutral-100 dark:bg-neutral-700 rounded-xl font-medium text-neutral-700 dark:text-neutral-300 flex items-center justify-center gap-2 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-colors"
+              >
+                {creatingBundle ? (
+                  <div className="w-5 h-5 border-2 border-neutral-500 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Plus size={18} />
+                    Crear nueva lista
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* Clear Empty Items Modal */}
+      <Modal
+        isOpen={clearEmptyModal}
+        onClose={() => setClearEmptyModal(false)}
+        title="Limpiar items vacíos"
+      >
+        <div className="space-y-4">
+          <p className="text-neutral-600 dark:text-neutral-400">
+            ¿Eliminar los <strong>{emptyItemsCount} items vacíos</strong> del inventario?
+          </p>
+          <p className="text-sm text-neutral-500 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg">
+            💡 Tip: Puedes añadirlos a una lista de compras antes de eliminarlos para recordar qué necesitas comprar.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setClearEmptyModal(false)}
+              className="flex-1 py-3 bg-neutral-100 dark:bg-neutral-700 rounded-xl font-medium text-neutral-700 dark:text-neutral-300"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleClearEmptyItems}
+              className="flex-1 py-3 bg-red-500 rounded-xl font-medium text-white flex items-center justify-center gap-2"
+            >
+              <Sparkles size={18} />
+              Limpiar todos
             </button>
           </div>
         </div>

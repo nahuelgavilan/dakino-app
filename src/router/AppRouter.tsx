@@ -12,6 +12,7 @@ import { PurchaseEditPage } from '@/pages/purchases/PurchaseEditPage';
 import { ProductsPage } from '@/pages/ProductsPage';
 import { BundlesPage } from '@/pages/BundlesPage';
 import { BundleFormPage } from '@/pages/BundleFormPage';
+import { BundleExecutionPage } from '@/pages/BundleExecutionPage';
 import { CalendarPage } from '@/pages/calendar/CalendarPage';
 import { AnalyticsPage } from '@/pages/AnalyticsPage';
 import { ProfilePage } from '@/pages/ProfilePage';
@@ -60,6 +61,14 @@ export const AppRouter = () => {
           element={
             <ProtectedRoute>
               <BundleFormPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={ROUTES.APP.BUNDLES_EXECUTE}
+          element={
+            <ProtectedRoute>
+              <BundleExecutionPage />
             </ProtectedRoute>
           }
         />

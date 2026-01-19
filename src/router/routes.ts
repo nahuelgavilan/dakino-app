@@ -18,6 +18,7 @@ export const ROUTES = {
     BUNDLES: '/bundles',
     BUNDLES_NEW: '/bundles/new',
     BUNDLES_EDIT: '/bundles/:id/edit',
+    BUNDLES_EXECUTE: '/bundles/:id/execute',
     // Inventario
     INVENTORY: '/inventory',
     INVENTORY_ITEM: '/inventory/:id',

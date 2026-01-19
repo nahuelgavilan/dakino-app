@@ -96,6 +96,56 @@ export class InventoryService {
     return data as InventoryItem;
   }
 
+  /**
+   * Añade al inventario de forma inteligente:
+   * - Si ya existe un item con mismo producto + ubicación + caducidad → suma cantidades
+   * - Si no existe → crea nuevo item
+   */
+  async addOrMergeInventoryItem(item: InventoryItemInsert): Promise<InventoryItem> {
+    // Buscar item existente con misma combinación
+    let query = supabase
+      .from('inventory_items')
+      .select('*')
+      .eq('user_id', item.user_id)
+      .eq('product_id', item.product_id)
+      .neq('status', 'empty'); // No combinar con items vacíos
+
+    // Filtrar por ubicación
+    if (item.location_id) {
+      query = query.eq('location_id', item.location_id);
+    } else {
+      query = query.is('location_id', null);
+    }
+
+    // Filtrar por fecha de caducidad
+    if (item.expiration_date) {
+      query = query.eq('expiration_date', item.expiration_date);
+    } else {
+      query = query.is('expiration_date', null);
+    }
+
+    const { data: existingItems, error: searchError } = await query;
+
+    if (searchError) throw searchError;
+
+    // Si existe, actualizar cantidad
+    if (existingItems && existingItems.length > 0) {
+      const existing = existingItems[0];
+      const newQuantity = existing.current_quantity + item.current_quantity;
+      const newInitial = existing.initial_quantity + item.initial_quantity;
+
+      return this.updateInventoryItem(existing.id, {
+        current_quantity: newQuantity,
+        initial_quantity: newInitial,
+        // Actualizar purchase_id al más reciente
+        purchase_id: item.purchase_id || existing.purchase_id,
+      });
+    }
+
+    // Si no existe, crear nuevo
+    return this.createInventoryItem(item);
+  }
+
   async updateInventoryItem(id: string, updates: InventoryItemUpdate): Promise<InventoryItem> {
     const { data, error } = await supabase
       .from('inventory_items')

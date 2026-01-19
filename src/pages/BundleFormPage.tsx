@@ -4,10 +4,11 @@ import { ROUTES } from '@/router/routes';
 import { bundleService } from '@/services/bundle.service';
 import { productService } from '@/services/product.service';
 import { categoryService } from '@/services/category.service';
+import { inventoryService } from '@/services/inventory.service';
 import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/hooks/useToast';
-import type { BundleInsert, BundleItemInsert, Product, Category } from '@/types/models';
-import { X, Plus, Trash2, Package, Search, Check, ChevronRight } from 'lucide-react';
+import type { BundleInsert, BundleItemInsert, Product, Category, InventoryItem } from '@/types/models';
+import { X, Plus, Trash2, Package, Search, Check, ChevronRight, AlertCircle } from 'lucide-react';
 
 const BUNDLE_ICONS = ['🛒', '📦', '🏪', '🍎', '🧹', '🏠', '💊', '🎮', '👕', '🚗', '📱', '✨'];
 const BUNDLE_COLORS = [
@@ -42,6 +43,7 @@ export const BundleFormPage = () => {
   const [items, setItems] = useState<BundleItemForm[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [emptyInventoryItems, setEmptyInventoryItems] = useState<InventoryItem[]>([]);
 
   // Product selection modal state
   const [showProductPicker, setShowProductPicker] = useState(false);
@@ -64,12 +66,14 @@ export const BundleFormPage = () => {
     if (!user) return;
     try {
       setLoadingData(true);
-      const [productsData, categoriesData] = await Promise.all([
+      const [productsData, categoriesData, inventoryData] = await Promise.all([
         productService.getProducts(user.id),
         categoryService.getCategories(user.id),
+        inventoryService.getInventoryItems(user.id, { status: 'empty' }),
       ]);
       setProducts(productsData);
       setCategories(categoriesData);
+      setEmptyInventoryItems(inventoryData);
     } catch (error) {
       console.error('Error loading data:', error);
       showError('Error al cargar datos');
@@ -136,6 +140,55 @@ export const BundleFormPage = () => {
     setItems([...items, newItem]);
     setShowProductPicker(false);
     setProductSearch('');
+  };
+
+  // Add empty inventory item to bundle
+  const addFromEmptyInventory = (inventoryItem: InventoryItem) => {
+    // Find the product from the products list
+    const product = products.find(p => p.id === inventoryItem.product_id);
+    if (!product) {
+      // Create a mock product from inventory item data
+      const mockProduct: Product = {
+        id: inventoryItem.product_id || inventoryItem.id,
+        user_id: inventoryItem.user_id,
+        name: inventoryItem.product_name,
+        category_id: inventoryItem.category_id,
+        category: inventoryItem.category,
+        store_id: null,
+        unit_type: inventoryItem.unit === 'unidades' ? 'unit' : 'weight',
+        default_price: null,
+        default_unit: inventoryItem.unit,
+        image_url: null,
+        last_used_at: null,
+        usage_count: 0,
+        created_at: inventoryItem.created_at,
+        updated_at: inventoryItem.updated_at,
+      };
+      addProduct(mockProduct);
+    } else {
+      addProduct(product);
+    }
+    // Remove from empty items list
+    setEmptyInventoryItems(prev => prev.filter(i => i.id !== inventoryItem.id));
+  };
+
+  // Add all empty inventory items
+  const addAllEmptyItems = () => {
+    emptyInventoryItems.forEach(item => {
+      const product = products.find(p => p.id === item.product_id);
+      if (product && !items.some(i => i.product_id === product.id)) {
+        const newItem: BundleItemForm = {
+          tempId: Date.now().toString() + item.id,
+          product_id: product.id,
+          product: product,
+          quantity: '1',
+          weight: '1',
+          estimated_price: product.default_price?.toString() || '',
+        };
+        setItems(prev => [...prev, newItem]);
+      }
+    });
+    setEmptyInventoryItems([]);
   };
 
   const removeItem = (tempId: string) => {
@@ -331,6 +384,52 @@ export const BundleFormPage = () => {
             />
           </div>
         </div>
+
+        {/* Empty Inventory Items - Quick Add */}
+        {emptyInventoryItems.length > 0 && !id && (
+          <div className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-2xl p-5 border border-red-200 dark:border-red-800">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <AlertCircle size={20} className="text-red-500" />
+                <h2 className="font-bold text-neutral-900 dark:text-neutral-100">
+                  Necesitas comprar ({emptyInventoryItems.length})
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={addAllEmptyItems}
+                className="px-3 py-1.5 bg-red-500 text-white text-xs font-bold rounded-lg hover:bg-red-600 transition-colors flex items-center gap-1"
+              >
+                <Plus size={14} />
+                Añadir todos
+              </button>
+            </div>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 mb-3">
+              Productos que se han acabado en tu inventario
+            </p>
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {emptyInventoryItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => addFromEmptyInventory(item)}
+                  className="flex-shrink-0 bg-white dark:bg-neutral-800 rounded-xl p-3 flex items-center gap-2 hover:shadow-md transition-all border border-neutral-200 dark:border-neutral-700"
+                >
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-sm"
+                    style={{ backgroundColor: (item.category?.color || '#6366F1') + '20' }}
+                  >
+                    {item.category?.icon || '📦'}
+                  </div>
+                  <span className="font-medium text-neutral-900 dark:text-neutral-100 text-sm whitespace-nowrap">
+                    {item.product_name}
+                  </span>
+                  <Plus size={16} className="text-red-500" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Products in Bundle */}
         <div className="bg-white dark:bg-neutral-800 rounded-2xl p-5 shadow-sm">

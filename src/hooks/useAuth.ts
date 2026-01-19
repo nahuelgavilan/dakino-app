@@ -1,9 +1,28 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { authService } from '@/services/auth.service';
+import { householdService } from '@/services/household.service';
 
 export const useAuth = () => {
-  const { user, profile, loading, setUser, setProfile, setLoading, logout: logoutStore } = useAuthStore();
+  const { user, profile, household, loading, setUser, setProfile, setHousehold, setLoading, logout: logoutStore } = useAuthStore();
+
+  // Función para cargar el hogar del usuario
+  const loadHousehold = useCallback(async (userId: string) => {
+    try {
+      const userHousehold = await householdService.getMyHousehold(userId);
+      setHousehold(userHousehold);
+    } catch (error) {
+      console.error('Error loading household:', error);
+      setHousehold(null);
+    }
+  }, [setHousehold]);
+
+  // Función para refrescar el hogar (útil después de unirse/abandonar)
+  const refreshHousehold = useCallback(async () => {
+    if (user) {
+      await loadHousehold(user.id);
+    }
+  }, [user, loadHousehold]);
 
   useEffect(() => {
     // Verificar sesión actual
@@ -15,6 +34,7 @@ export const useAuth = () => {
         if (currentUser) {
           const userProfile = await authService.getProfile(currentUser.id);
           setProfile(userProfile);
+          await loadHousehold(currentUser.id);
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
@@ -32,15 +52,17 @@ export const useAuth = () => {
       if (newUser) {
         const userProfile = await authService.getProfile(newUser.id);
         setProfile(userProfile);
+        await loadHousehold(newUser.id);
       } else {
         setProfile(null);
+        setHousehold(null);
       }
     });
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [setUser, setProfile, setLoading]);
+  }, [setUser, setProfile, setHousehold, setLoading, loadHousehold]);
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
@@ -79,10 +101,12 @@ export const useAuth = () => {
   return {
     user,
     profile,
+    household,
     loading,
     signIn,
     signUp,
     signOut,
+    refreshHousehold,
     isAuthenticated: !!user,
   };
 };

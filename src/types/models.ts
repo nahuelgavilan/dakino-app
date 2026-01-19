@@ -2,11 +2,34 @@
 
 export type UnitType = 'unit' | 'weight';
 
+// ==============================================================================
+// SISTEMA DE HOGARES COMPARTIDOS
+// ==============================================================================
+
+export interface Household {
+  id: string;
+  name: string;
+  invite_code: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  members?: HouseholdMember[];
+}
+
+export interface HouseholdMember {
+  id: string;
+  email: string;
+  full_name: string | null;
+  avatar_url: string | null;
+}
+
 export interface Profile {
   id: string;
   email: string;
   full_name: string | null;
   avatar_url: string | null;
+  household_id?: string | null;
+  household?: Household;
   created_at: string;
   updated_at: string;
 }
@@ -17,6 +40,7 @@ export interface Category {
   icon: string | null;
   color: string | null;
   user_id: string | null;
+  household_id?: string | null;
   is_default: boolean;
   created_at: string;
 }
@@ -34,6 +58,7 @@ export interface Tag {
 export interface Store {
   id: string;
   user_id: string;
+  household_id?: string | null;
   name: string;
   icon: string;
   color: string;
@@ -45,6 +70,7 @@ export interface Store {
 export interface Product {
   id: string;
   user_id: string;
+  household_id?: string | null;
   name: string;
   category_id: string | null;
   category?: Category;
@@ -63,6 +89,7 @@ export interface Product {
 export interface Purchase {
   id: string;
   user_id: string;
+  household_id?: string | null;
   product_id: string | null;
   product_name: string;
   category_id: string | null;
@@ -103,6 +130,7 @@ export type PurchaseTagInsert = Omit<PurchaseTag, 'id' | 'created_at' | 'tag'>;
 export interface Bundle {
   id: string;
   user_id: string;
+  household_id?: string | null;
   name: string;
   description: string | null;
   icon: string;
@@ -152,6 +180,7 @@ export type InventoryStatus = 'in_stock' | 'low' | 'empty';
 export interface StorageLocation {
   id: string;
   user_id: string | null;
+  household_id?: string | null;
   name: string;
   icon: string;
   color: string;
@@ -163,6 +192,7 @@ export interface StorageLocation {
 export interface InventoryItem {
   id: string;
   user_id: string;
+  household_id?: string | null;
   product_id: string | null;
   product_name: string;
   category_id: string | null;
@@ -207,3 +237,22 @@ export type ConsumptionLogInsert = Omit<ConsumptionLog, 'id' | 'consumed_at'>;
 // Tipos para actualizaciones de inventario
 export type StorageLocationUpdate = Partial<Omit<StorageLocation, 'id' | 'created_at' | 'user_id'>>;
 export type InventoryItemUpdate = Partial<Omit<InventoryItem, 'id' | 'created_at' | 'updated_at' | 'user_id' | 'category' | 'location'>>;
+
+// Tipos para hogares
+export type HouseholdInsert = Omit<Household, 'id' | 'created_at' | 'updated_at' | 'members'>;
+export type HouseholdUpdate = Partial<Omit<Household, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'members'>>;
+
+// Respuesta de unirse a hogar
+export interface JoinHouseholdResult {
+  success: boolean;
+  error?: string;
+  household_id?: string;
+  household_name?: string;
+}
+
+// Respuesta de abandonar hogar
+export interface LeaveHouseholdResult {
+  success: boolean;
+  error?: string;
+  new_household_id?: string;
+}

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut, User, Mail, Calendar, Package, ShoppingBag, Tag, Store, ChevronRight, Settings, ListChecks, History, BarChart3 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { HouseholdSection } from '@/components/household/HouseholdSection';
 
 export const ProfilePage = () => {
   const { user, profile, logout } = useAuthStore();
@@ -89,6 +90,9 @@ export const ProfilePage = () => {
               </div>
             </div>
           </div>
+
+          {/* Household Section */}
+          <HouseholdSection />
 
           {/* Quick Actions */}
           <div className="mb-6">
